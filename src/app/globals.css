@@ -1,0 +1,201 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+/* ── Design tokens — 1:1 with the original HomeCare tailwind.config ── */
+@theme {
+  --font-sans: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-900: #0b1e3f;
+
+  --color-safe-50: #ecfdf5;
+  --color-safe-100: #d1fae5;
+  --color-safe-300: #6ee7b7;
+  --color-safe-400: #34d399;
+  --color-safe-500: #10b981;
+  --color-safe-600: #059669;
+  --color-safe-700: #047857;
+
+  --color-warn-50: #fffbeb;
+  --color-warn-500: #f59e0b;
+  --color-warn-600: #d97706;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  --color-ink-50: #f8fafc;
+  --color-ink-100: #f1f5f9;
+  --color-ink-200: #e2e8f0;
+  --color-ink-300: #cbd5e1;
+  --color-ink-400: #94a3b8;
+  --color-ink-500: #64748b;
+  --color-ink-600: #475569;
+  --color-ink-700: #334155;
+  --color-ink-800: #1e293b;
+  --color-ink-900: #0f172a;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-soft: 0 4px 16px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-pop: 0 20px 40px -20px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.06);
+
+  --animate-fade-up: fade-up 0.4s ease both;
+  --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
+  --animate-check-pop: check-pop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+@keyframes check-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+html,
+body {
+  background: white;
+}
+body {
+  font-family: var(--font-sans);
+  margin: 0;
+}
+
+/* Tabular numerals — keeps tnum digits aligned */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hidden scrollbar inside the phone viewport */
+.phone-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.phone-scroll {
+  scrollbar-width: none;
+}
+
+/* Hatched image placeholder fill */
+.hatch {
+  background-image: repeating-linear-gradient(135deg, #e2e8f0 0 1px, transparent 1px 8px);
+}
+
+/* ── Print / PDF layout (/print route) ── */
+.print-page {
+  width: 1123px; /* A4 landscape @ 96dpi minus margins */
+  min-height: 750px;
+  margin: 0 auto 24px;
+  padding: 32px 40px;
+  background: white;
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
+  position: relative;
+}
+.print-page:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+.cover-inner {
+  height: 100%;
+}
+.cover-footer {
+  position: absolute;
+  bottom: 32px;
+  left: 40px;
+  right: 40px;
+  display: flex;
+  justify-content: space-between;
+  color: #94a3b8;
+  font-size: 11px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+}
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+  margin-bottom: 24px;
+}
+.phones-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 60px;
+  padding-top: 30px;
+}
+.phones-row > div {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0.5cm;
+  }
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: white !important;
+  }
+  /* Disable animations for print */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+  }
+  .print-page {
+    margin: 0 auto;
+    padding: 24px 32px;
+    width: auto;
+    min-height: auto;
+    box-shadow: none;
+  }
+  .cover-footer {
+    position: absolute;
+    bottom: 16px;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
