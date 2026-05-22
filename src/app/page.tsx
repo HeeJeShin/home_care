@@ -14,7 +14,7 @@ const Meta = ({ k, v }: MetaProps): ReactNode => (
 
 const HomePage = (): ReactNode => (
   <div className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,#E0E7FF_0%,transparent_60%),radial-gradient(circle_at_80%_30%,#D1FAE5_0%,transparent_60%)] bg-ink-50">
-    <header className="px-10 pt-10 pb-6 max-w-[1600px] mx-auto">
+    <header className="px-10 pt-10 pb-10 max-w-[1600px] mx-auto">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-bold tracking-tight">
           HC
