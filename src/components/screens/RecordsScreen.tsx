@@ -72,7 +72,8 @@ const Timeline = (): ReactNode => {
     .slice()
     .reverse()
     .forEach((c) => {
-      const k = `${c.at.getMonth() + 1}/${c.at.getDate()}`;
+      const d = new Date(c.at);
+      const k = `${d.getMonth() + 1}/${d.getDate()}`;
       (byDay[k] = byDay[k] || []).push(c);
     });
   return (
@@ -110,20 +111,20 @@ const TimelineCard = ({ c }: TimelineCardProps): ReactNode => (
   <div className="bg-white rounded-2xl border border-ink-100 shadow-card p-3.5">
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <span className="text-[14px] font-bold tnum tracking-tight">{fmtHM(c.at)}</span>
+        <span className="text-[14px] font-bold tnum tracking-tight">{fmtHM(new Date(c.at))}</span>
         <Pill tone={c.ok ? "safe" : "danger"}>{c.ok ? "이상 없음" : "이상"}</Pill>
       </div>
       <span className="text-[11px] text-ink-400">{c.note}</span>
     </div>
     <div className="mt-2 grid grid-cols-3 gap-2 text-center">
       <Mini icon={<I.Droplet size={14} />} ok>
-        눈금 <b className="tnum">{c.scale}</b>
+        눈금 <b className="tnum">{c.scaleMl}</b>
         <span className="text-[10px] text-ink-500 ml-0.5">ml</span>
       </Mini>
       <Mini icon={<I.LockOpen size={14} />} ok={c.locks[0] === true && c.locks[1] === true}>
         잠금 ✓✓
       </Mini>
-      <Mini icon={<I.Thermometer size={14} />} ok={c.temp === true}>
+      <Mini icon={<I.Thermometer size={14} />} ok={c.tempOk === true}>
         온도센서 ✓
       </Mini>
     </div>
@@ -150,8 +151,8 @@ const ChartView = (): ReactNode => {
   const H = 200;
   const P = 20;
   const pts = app.checks.map((c) => ({
-    hr: (c.at.getTime() - app.startAt.getTime()) / 3600000,
-    scale: c.scale,
+    hr: (new Date(c.at).getTime() - app.startAt.getTime()) / 3600000,
+    scale: c.scaleMl,
   }));
   if (pts.length === 0) return <div className="p-5 text-center text-ink-500">아직 기록이 없어요</div>;
 
@@ -247,7 +248,7 @@ export const ExportScreen = (): ReactNode => {
       <TopBar
         title="기록 내보내기"
         left={
-          <IconBtn onClick={() => app.goTo("tabs")} label="닫기">
+          <IconBtn onClick={() => app.goTo("home")} label="닫기">
             <I.X size={18} />
           </IconBtn>
         }
@@ -300,8 +301,8 @@ export const ExportScreen = (): ReactNode => {
                   key={i}
                   className="grid grid-cols-[1.4fr_.7fr_.7fr_.7fr_.7fr] text-[9px] border-t border-ink-200 tnum"
                 >
-                  <div className="px-1.5 py-1 font-medium">{fmtKShort(c.at)}</div>
-                  <div className="px-1.5 py-1">{c.scale}ml</div>
+                  <div className="px-1.5 py-1 font-medium">{fmtKShort(new Date(c.at))}</div>
+                  <div className="px-1.5 py-1">{c.scaleMl}ml</div>
                   <div className="px-1.5 py-1 text-safe-600">✓✓</div>
                   <div className="px-1.5 py-1 text-safe-600">✓</div>
                   <div className="px-1.5 py-1 font-semibold text-safe-700">정상</div>
@@ -349,7 +350,7 @@ const MiniChart = ({ checks, start }: MiniChartProps): ReactNode => {
   const P = 4;
   const xFor = (hr: number): number => P + (hr / 44) * (W - P * 2);
   const yFor = (sc: number): number => H - P - (sc / 130) * (H - P * 2);
-  const pts = checks.map((c) => ({ hr: (c.at.getTime() - start.getTime()) / 3600000, scale: c.scale }));
+  const pts = checks.map((c) => ({ hr: (new Date(c.at).getTime() - start.getTime()) / 3600000, scale: c.scaleMl }));
   const path = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${xFor(p.hr)} ${yFor(p.scale)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full">

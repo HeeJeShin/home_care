@@ -4,6 +4,7 @@ import { cx } from "@/lib/cx";
 export type FieldProps = {
   label?: string;
   hint?: string;
+  required?: boolean;
   children: ReactNode;
   className?: string;
 };
@@ -12,11 +13,12 @@ export type FieldProps = {
  * Labeled input shell — uppercase label + bordered box that lifts on focus.
  * All text-like inputs compose this; screens never style a box themselves.
  */
-export const Field = ({ label, hint, children, className }: FieldProps): ReactNode => (
+export const Field = ({ label, hint, required, children, className }: FieldProps): ReactNode => (
   <label className="block">
     {label && (
       <div className="text-[11px] font-semibold text-ink-500 uppercase tracking-wider mb-1.5">
         {label}
+        {required && <span className="text-danger-500 ml-0.5">*</span>}
       </div>
     )}
     <div

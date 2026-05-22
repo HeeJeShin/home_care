@@ -9,21 +9,30 @@ import { Stepper, Button } from "@/components/ui";
 import { NumberStepper, Textarea } from "@/components/form";
 import { PumpIllustration } from "@/components/illustrations/PumpIllustration";
 import { SensorIllustration } from "@/components/illustrations/SensorIllustration";
-import type { LockValue } from "@/types";
+import type { LockValue, CheckStep } from "@/types";
 
-export const CheckFlow = (): ReactNode => {
+/**
+ * 점검 플로우 화면 (/check)
+ * 4단계: 눈금 → 잠금장치 → 온도센서 → 완료
+ */
+export const CheckScreen = (): ReactNode => {
   const app = useApp();
   const step = app.checkStep;
+
+  const handleBack = (): void => {
+    if (step === 0) {
+      app.goTo("home");
+    } else {
+      app.setCheckStep((step - 1) as CheckStep);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-ink-50">
       <div className="pt-12 px-5 pb-3 bg-white border-b border-ink-100">
         <div className="flex items-center justify-between mb-3">
           <button
-            onClick={() => {
-              if (step === 0) app.goTo("tabs");
-              else app.setCheckStep((s) => s - 1);
-            }}
+            onClick={handleBack}
             className="w-9 h-9 -ml-2 rounded-full flex items-center justify-center text-ink-700 hover:bg-ink-100"
           >
             <I.ChevL size={20} />
@@ -32,7 +41,7 @@ export const CheckFlow = (): ReactNode => {
             {step < 3 ? `점검 ${step + 1} / 3` : "완료"}
           </div>
           <button
-            onClick={() => app.goTo("tabs")}
+            onClick={() => app.goTo("home")}
             className="w-9 h-9 -mr-2 rounded-full flex items-center justify-center text-ink-700 hover:bg-ink-100"
           >
             <I.X size={20} />
@@ -53,11 +62,12 @@ export const CheckFlow = (): ReactNode => {
 
 const CheckScale = (): ReactNode => {
   const app = useApp();
-  const prev = app.checks.at(-1)?.scale ?? 120;
-  const [val, setVal] = useState(app.draft.scale);
+  const prev = app.checks.at(-1)?.scaleMl ?? 120;
+  const [val, setVal] = useState(app.draft.scaleMl);
   const [decision, setDecision] = useState<"ok" | "no_change" | null>(null);
+
   useEffect(() => {
-    app.setDraft({ ...app.draft, scale: val });
+    app.setDraft({ ...app.draft, scaleMl: val });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [val]);
 
@@ -75,7 +85,7 @@ const CheckScale = (): ReactNode => {
 
       <div className="mt-5 bg-white border border-ink-100 rounded-3xl p-4 shadow-card">
         <div className="flex items-center justify-around">
-          <PumpCompare label="지난 점검" value={prev} time={lastAt ? fmtKShort(lastAt) : "—"} />
+          <PumpCompare label="지난 점검" value={prev} time={lastAt ? fmtKShort(new Date(lastAt)) : "—"} />
           <I.ChevR size={20} className="text-ink-300" />
           <PumpCompare label="지금" value={val} time="현재" highlight />
         </div>
@@ -220,10 +230,12 @@ const ChoiceCard = ({ icon, tone = "safe", active, onClick, title, desc }: Choic
 const CheckLocks = (): ReactNode => {
   const app = useApp();
   const [locks, setLocks] = useState(app.draft.locks);
+
   useEffect(() => {
     app.setDraft({ ...app.draft, locks });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locks]);
+
   const bothOk = locks[0] === true && locks[1] === true;
   const anyBad = locks[0] === false || locks[1] === false;
 
@@ -343,10 +355,11 @@ const LockCard = ({ idx, title, desc, value, onChange }: LockCardProps): ReactNo
 
 const CheckTemp = (): ReactNode => {
   const app = useApp();
-  const [temp, setTemp] = useState<LockValue>(app.draft.temp);
+  const [temp, setTemp] = useState<LockValue>(app.draft.tempOk);
   const [note, setNote] = useState(app.draft.note);
+
   useEffect(() => {
-    app.setDraft({ ...app.draft, temp, note });
+    app.setDraft({ ...app.draft, tempOk: temp, note });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [temp, note]);
 
@@ -433,10 +446,11 @@ const CheckComplete = (): ReactNode => {
   const app = useApp();
   const last = app.checks.at(-1);
   const items: Array<{ icon: ReactNode; label: string; val: string }> = [
-    { icon: <I.Droplet size={16} />, label: "눈금/풍선 변화", val: `${last?.scale}ml` },
+    { icon: <I.Droplet size={16} />, label: "눈금/풍선 변화", val: `${last?.scaleMl}ml` },
     { icon: <I.LockOpen size={16} />, label: "잠금장치 2곳", val: "열림 ✓✓" },
     { icon: <I.Thermometer size={16} />, label: "온도센서", val: "부착 ✓" },
   ];
+
   return (
     <div className="p-5 animate-fade-up text-center">
       <div className="mt-4 inline-flex items-center justify-center w-24 h-24 rounded-full bg-safe-50 animate-check-pop">
@@ -469,16 +483,10 @@ const CheckComplete = (): ReactNode => {
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-2">
-        <Button variant="outline" onClick={() => app.goTo("tabs")}>
+        <Button variant="outline" onClick={() => app.goTo("home")}>
           홈으로
         </Button>
-        <Button
-          variant="primary"
-          onClick={() => {
-            app.setTab("records");
-            app.goTo("tabs");
-          }}
-        >
+        <Button variant="primary" onClick={() => app.goTo("records")}>
           기록 보기
         </Button>
       </div>

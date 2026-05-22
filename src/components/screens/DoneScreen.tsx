@@ -3,19 +3,23 @@
 import { useState, type ReactNode } from "react";
 import { useApp } from "@/state/AppContext";
 import { cx } from "@/lib/cx";
-import { fmtKShort } from "@/lib/format";
 import { I } from "@/components/icons";
 import { TopBar, IconBtn, Button } from "@/components/ui";
 
-export const EndScreen = (): ReactNode => {
+/**
+ * 주입 완료 화면 (/done)
+ * 눈금이 0이 되었을 때 보이는 화면
+ */
+export const DoneScreen = (): ReactNode => {
   const app = useApp();
+
   return (
     <div className="h-full flex flex-col bg-gradient-to-b from-safe-50 to-white">
       <TopBar
         title="주입 완료"
         transparent
         left={
-          <IconBtn onClick={() => app.goTo("tabs")} label="닫기">
+          <IconBtn onClick={() => app.goTo("home")} label="닫기">
             <I.X size={18} />
           </IconBtn>
         }
@@ -32,7 +36,7 @@ export const EndScreen = (): ReactNode => {
             눈금이 0이 되었어요
           </div>
           <h2 className="mt-2 text-[26px] font-bold tracking-tight leading-tight">
-            44시간, 잘 견뎌내셨어요
+            {app.totalHours}시간, 잘 견뎌내셨어요
           </h2>
           <p className="mt-2 text-[13px] text-ink-600">이제 병원에 방문해서 홈펌프를 제거해주세요</p>
         </div>
@@ -57,14 +61,14 @@ export const EndScreen = (): ReactNode => {
         </div>
 
         <div className="mt-5">
-          <a href="tel:02-0000-0000" className="block">
+          <a href={`tel:${app.patient.wardPhone}`} className="block">
             <div className="rounded-2xl bg-brand-600 text-white p-4 flex items-center gap-3 shadow-soft active:scale-[.99] transition">
               <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
                 <I.Phone size={22} />
               </div>
               <div className="flex-1">
                 <div className="text-[11px] opacity-90 uppercase tracking-wider font-bold">병동 직통</div>
-                <div className="text-[16px] font-bold tnum">02-0000-0000</div>
+                <div className="text-[16px] font-bold tnum">{app.patient.wardPhone}</div>
                 <div className="text-[11px] opacity-80">방문 전 연락드리면 빠르게 안내받으실 수 있어요</div>
               </div>
             </div>
@@ -75,10 +79,7 @@ export const EndScreen = (): ReactNode => {
           <Button
             variant="outline"
             full
-            onClick={() => {
-              app.setTab("records");
-              app.goTo("tabs");
-            }}
+            onClick={() => app.goTo("export")}
             icon={<I.Download size={18} />}
           >
             최종 기록 PDF 보기
@@ -125,98 +126,3 @@ const Todo = ({ title, desc, warn }: TodoProps): ReactNode => {
     </button>
   );
 };
-
-type SettingsGroup = { title: string; items: Array<{ k: string; v: string }> };
-
-export const SettingsScreen = (): ReactNode => {
-  const app = useApp();
-  const groups: SettingsGroup[] = [
-    {
-      title: "치료 정보",
-      items: [
-        { k: "환자", v: app.patient.name },
-        { k: "요법", v: app.patient.regimen },
-        { k: "주입 시작", v: fmtKShort(app.startAt) },
-        { k: "예상 종료", v: fmtKShort(app.endAt) },
-      ],
-    },
-    {
-      title: "알람",
-      items: [
-        { k: "아침", v: app.alarmTimes.morning },
-        { k: "점심", v: app.alarmTimes.noon },
-        { k: "저녁", v: app.alarmTimes.evening },
-      ],
-    },
-    {
-      title: "비상 연락",
-      items: [
-        { k: "병동 직통", v: "02-0000-0000" },
-        { k: "응급실", v: "119" },
-      ],
-    },
-  ];
-  return (
-    <div className="h-full flex flex-col bg-ink-50">
-      <TopBar title="설정" />
-      <div className="flex-1 overflow-auto phone-scroll pb-24">
-        <div className="px-4 pt-4">
-          {groups.map((g) => (
-            <div key={g.title} className="mb-5">
-              <div className="text-[11px] font-bold text-ink-500 uppercase tracking-widest mb-2 px-1">
-                {g.title}
-              </div>
-              <div className="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
-                {g.items.map((it) => (
-                  <div key={it.k} className="px-4 py-3 flex justify-between items-baseline">
-                    <span className="text-[13px] text-ink-700">{it.k}</span>
-                    <span className="text-[13px] font-semibold tracking-tight tnum">{it.v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-
-          <div className="mb-5">
-            <div className="text-[11px] font-bold text-ink-500 uppercase tracking-widest mb-2 px-1">
-              데모 단축키
-            </div>
-            <div className="bg-white rounded-2xl border border-ink-100 divide-y divide-ink-100">
-              <DevRow onClick={() => app.goTo("setup")}>처음 설정 화면 보기</DevRow>
-              <DevRow
-                onClick={() => {
-                  app.setAlertType("fever");
-                  app.goTo("alert");
-                }}
-              >
-                이상 상황 (38도 발열)
-              </DevRow>
-              <DevRow
-                onClick={() => {
-                  app.setAlertType("leak");
-                  app.goTo("alert");
-                }}
-              >
-                이상 상황 (약물 누출)
-              </DevRow>
-              <DevRow onClick={() => app.goTo("end")}>주입 완료 화면 보기</DevRow>
-              <DevRow onClick={() => app.goTo("export")}>PDF 미리보기</DevRow>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-type DevRowProps = { children: ReactNode; onClick: () => void };
-
-const DevRow = ({ children, onClick }: DevRowProps): ReactNode => (
-  <button
-    onClick={onClick}
-    className="w-full px-4 py-3 flex justify-between items-center text-left hover:bg-ink-50"
-  >
-    <span className="text-[13px] font-medium text-brand-700">{children}</span>
-    <I.ChevR size={16} className="text-ink-400" />
-  </button>
-);

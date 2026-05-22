@@ -4,22 +4,20 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { AppProvider, useApp } from "@/state/AppContext";
 import { PhoneFrame } from "@/components/ui";
 import { ScreenRouter } from "@/components/screens/ScreenRouter";
-import type { AlertType, Route, Tab } from "@/types";
+import type { AlertType, Route } from "@/types";
 
 export type PhoneAppProps = {
   initialRoute?: Route;
-  initialTab?: Tab;
   initialAlert?: AlertType | null;
   label?: string;
   time?: string;
 };
 
-type PhoneInnerProps = Required<Pick<PhoneAppProps, "initialRoute" | "initialTab">> &
+type PhoneInnerProps = Required<Pick<PhoneAppProps, "initialRoute">> &
   Pick<PhoneAppProps, "initialAlert" | "label" | "time">;
 
 const PhoneInner = ({
   initialRoute,
-  initialTab,
   initialAlert,
   label,
   time,
@@ -30,7 +28,6 @@ const PhoneInner = ({
     if (initRef.current) return;
     initRef.current = true;
     app.setRoute(initialRoute);
-    app.setTab(initialTab);
     if (initialAlert) app.setAlertType(initialAlert);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -44,8 +41,7 @@ const PhoneInner = ({
 
 /** A self-contained phone mockup with its own independent app state. */
 export const PhoneApp = ({
-  initialRoute = "tabs",
-  initialTab = "home",
+  initialRoute = "home",
   initialAlert = null,
   label,
   time,
@@ -53,7 +49,6 @@ export const PhoneApp = ({
   <AppProvider>
     <PhoneInner
       initialRoute={initialRoute}
-      initialTab={initialTab}
       initialAlert={initialAlert}
       label={label}
       time={time}

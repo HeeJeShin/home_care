@@ -1,264 +1,599 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useApp } from "@/state/AppContext";
 import { cx } from "@/lib/cx";
-import { fmtKDateTime } from "@/lib/format";
 import { I } from "@/components/icons";
-import { Button } from "@/components/ui";
-import { TextInput, DateInput, TimeInput } from "@/components/form";
-import { PumpIllustration } from "@/components/illustrations/PumpIllustration";
+import { Button, Card } from "@/components/ui";
+import { Field, TextInput, DateInput, TimeInput } from "@/components/form";
+import type { SetupStep } from "@/types";
 
-const STEPS = ["소개", "환자 정보", "주입 시작", "알람 시간", "확인"] as const;
+/** 의료진 설정 스텝 순서 */
+const SETUP_STEPS: SetupStep[] = ["patient", "schedule", "contact", "review", "handoff"];
+const STEP_LABELS: Record<SetupStep, string> = {
+  patient: "환자 정보",
+  schedule: "처방 / 일정",
+  contact: "연락처 · 알람",
+  review: "확인",
+  handoff: "전달",
+};
 
+/**
+ * 의료진 입력 화면 - 기술 스펙 §1
+ * 퇴원 전 의료진이 환자 정보, 처방, 연락처 입력
+ */
 export const SetupScreen = (): ReactNode => {
-  const app = useApp();
-  const [step, setStep] = useState(0);
+  const { setupStep, setSetupStep, setStaffLocked, goTo } = useApp();
+
+  const currentIndex = SETUP_STEPS.indexOf(setupStep);
+
+  const handleNext = (): void => {
+    if (currentIndex < SETUP_STEPS.length - 1) {
+      setSetupStep(SETUP_STEPS[currentIndex + 1]);
+    }
+  };
+
+  const handlePrev = (): void => {
+    if (currentIndex > 0) {
+      setSetupStep(SETUP_STEPS[currentIndex - 1]);
+    }
+  };
+
+  const handleComplete = (): void => {
+    setStaffLocked(true);
+    goTo("intro");
+  };
 
   return (
     <div className="h-full flex flex-col bg-ink-50">
-      <div className="pt-12 px-5 pb-2">
-        <div className="flex items-center justify-between text-[11px] text-ink-500 font-semibold tracking-wide uppercase">
-          <span>
-            STEP {step + 1} / {STEPS.length}
-          </span>
-          <span>{STEPS[step]}</span>
-        </div>
-        <div className="mt-2 flex gap-1">
-          {STEPS.map((s, i) => (
+      {/* 의료진 전용 헤더 */}
+      <StaffHeader step={currentIndex} totalSteps={SETUP_STEPS.length} />
+
+      {/* 진행 바 */}
+      <div className="px-5 pt-3 pb-2 bg-white border-b border-ink-100">
+        <div className="flex gap-1">
+          {SETUP_STEPS.map((_, i) => (
             <div
-              key={s}
-              className={cx("h-1 flex-1 rounded-full", i <= step ? "bg-brand-600" : "bg-ink-200")}
+              key={i}
+              className={cx(
+                "h-1 flex-1 rounded-full transition-colors",
+                i <= currentIndex ? "bg-brand-600" : "bg-ink-200"
+              )}
             />
           ))}
         </div>
+        <div className="mt-2 text-[12px] font-semibold text-ink-700">
+          {STEP_LABELS[setupStep]}
+        </div>
       </div>
 
+      {/* 스텝별 콘텐츠 */}
       <div className="flex-1 overflow-auto phone-scroll px-5 py-4">
-        {step === 0 && <SetupIntro />}
-        {step === 1 && <SetupPatient />}
-        {step === 2 && <SetupDateTime />}
-        {step === 3 && <SetupAlarms />}
-        {step === 4 && <SetupReview />}
+        {setupStep === "patient" && <StepPatient />}
+        {setupStep === "schedule" && <StepSchedule />}
+        {setupStep === "contact" && <StepContact />}
+        {setupStep === "review" && <StepReview />}
+        {setupStep === "handoff" && <StepHandoff onComplete={handleComplete} />}
       </div>
 
-      <div className="px-5 pt-3 pb-6 bg-white border-t border-ink-100 flex gap-2">
-        {step > 0 && (
-          <Button variant="outline" onClick={() => setStep((s) => s - 1)}>
-            이전
+      {/* 하단 버튼 */}
+      {setupStep !== "handoff" && (
+        <div className="px-5 pt-3 pb-6 bg-white border-t border-ink-100 flex gap-2">
+          {currentIndex > 0 && (
+            <Button variant="outline" onClick={handlePrev}>
+              이전
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            full
+            onClick={handleNext}
+            iconRight={<I.ChevR size={16} />}
+          >
+            {setupStep === "review" ? "환자에게 전달" : "다음"}
           </Button>
-        )}
-        <Button
-          variant="primary"
-          full
-          onClick={() => {
-            if (step < 4) setStep((s) => s + 1);
-            else app.goTo("tabs");
-          }}
-        >
-          {step === 4 ? "시작하기" : step === 0 ? "시작" : "다음"}
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 };
 
-type IntroItem = { icon: ReactNode; t: string; s: string };
+/** 의료진 전용 헤더 */
+type StaffHeaderProps = {
+  step: number;
+  totalSteps: number;
+};
 
-const INTRO_ITEMS: IntroItem[] = [
-  { icon: <I.Bell size={18} />, t: "알람으로 알려드려요", s: "아침·점심·저녁 자동 알림" },
-  { icon: <I.Check size={18} />, t: "3가지만 체크하면 끝", s: "눈금·잠금장치·온도센서" },
-  { icon: <I.Share size={18} />, t: "기록은 PDF로 저장", s: "다음 외래에서 의료진과 공유" },
-];
-
-const SetupIntro = (): ReactNode => (
-  <div className="animate-fade-up">
-    <div className="flex flex-col items-center mt-2">
-      <PumpIllustration remaining={1} size={120} />
-    </div>
-    <h2 className="mt-4 text-[24px] font-bold tracking-tight text-ink-900 text-center leading-tight">
-      퇴원 후 44시간,
-      <br />
-      안심하고 함께할게요
-    </h2>
-    <p className="mt-3 text-center text-[13px] text-ink-500 leading-relaxed">
-      홈펌프 항암제 치료 동안
-      <br />3 가지 점검을 하루 3번 안내해드립니다
-    </p>
-
-    <div className="mt-7 space-y-3">
-      {INTRO_ITEMS.map((x) => (
-        <div key={x.t} className="bg-white rounded-2xl p-3 flex items-center gap-3 border border-ink-100">
-          <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
-            {x.icon}
-          </div>
-          <div>
-            <div className="text-[14px] font-semibold text-ink-900">{x.t}</div>
-            <div className="text-[12px] text-ink-500">{x.s}</div>
-          </div>
+const StaffHeader = ({ step, totalSteps }: StaffHeaderProps): ReactNode => (
+  <div className="bg-ink-900 text-white pt-12 pb-3 px-5">
+    <div className="flex items-center gap-2">
+      <div className="w-7 h-7 rounded-md bg-warn-500 text-ink-900 flex items-center justify-center font-bold text-[12px]">
+        RN
+      </div>
+      <div className="flex-1">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-warn-500">
+          Medical Staff Only
         </div>
-      ))}
-    </div>
-
-    <div className="mt-5 rounded-xl bg-warn-50 border border-warn-500/20 p-3 flex gap-2.5">
-      <I.Info size={16} className="text-warn-600 shrink-0 mt-0.5" />
-      <p className="text-[12px] text-ink-700 leading-relaxed">
-        이 앱은 보조 도구이며, 의료 판단을 대신하지 않습니다. 이상 증상 시 즉시 의료진에게 문의하세요.
-      </p>
+        <div className="text-[13px] font-semibold tracking-tight">
+          의료진 입력 — 퇴원 전 작성
+        </div>
+      </div>
+      <div className="text-[11px] text-ink-400 font-mono tnum">
+        {step + 1}/{totalSteps}
+      </div>
     </div>
   </div>
 );
 
-const SetupPatient = (): ReactNode => {
-  const app = useApp();
-  const { patient } = app;
-  return (
-    <div className="animate-fade-up">
-      <h2 className="text-[22px] font-bold tracking-tight">환자 정보를 알려주세요</h2>
-      <p className="mt-1 text-[13px] text-ink-500">기록을 의료진과 공유할 때 사용돼요</p>
+/** STEP 1: 환자 정보 */
+const StepPatient = (): ReactNode => {
+  const { patient, setPatient } = useApp();
 
-      <div className="mt-5 space-y-3">
-        <TextInput
-          label="이름"
-          placeholder="홍길동"
-          value={patient.name}
-          onChange={(name) => app.setPatient({ ...patient, name })}
-        />
-        <TextInput
-          label="등록번호"
-          placeholder="0000000"
-          tnum
-          value={patient.mrn}
-          onChange={(mrn) => app.setPatient({ ...patient, mrn })}
-        />
-        <TextInput
-          label="처방 요법"
-          placeholder="FOLFOX, FOLFIRI 등"
-          value={patient.regimen}
-          onChange={(regimen) => app.setPatient({ ...patient, regimen })}
-        />
-      </div>
-
-      <div className="mt-4 rounded-xl bg-ink-100/60 p-3 text-[12px] text-ink-600 leading-relaxed">
-        🔒 입력하신 정보는 이 기기에만 저장되며, PDF로 내보내실 때만 사용됩니다.
-      </div>
-    </div>
-  );
-};
-
-const SetupDateTime = (): ReactNode => {
-  const app = useApp();
-  const d = app.startAt;
-  const [date, setDate] = useState(
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-  );
-  const [time, setTime] = useState(
-    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`,
-  );
-  useEffect(() => {
-    const [y, m, da] = date.split("-").map(Number);
-    const [h, mi] = time.split(":").map(Number);
-    app.setStartAt(new Date(y, m - 1, da, h, mi));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [date, time]);
+  const update = <K extends keyof typeof patient>(key: K, value: typeof patient[K]): void => {
+    setPatient({ ...patient, [key]: value });
+  };
 
   return (
     <div className="animate-fade-up">
-      <h2 className="text-[22px] font-bold tracking-tight">언제 주입을 시작했나요?</h2>
-      <p className="mt-1 text-[13px] text-ink-500">병동에서 연결한 시각을 알려주세요</p>
+      <h2 className="text-[20px] font-bold tracking-tight">환자 정보</h2>
+      <p className="mt-1 text-[12.5px] text-ink-500">
+        EMR에서 자동으로 가져오거나 수동 입력
+      </p>
 
-      <div className="mt-5 space-y-3">
-        <DateInput label="주입 시작 날짜" value={date} onChange={setDate} />
-        <TimeInput label="주입 시작 시각" value={time} onChange={setTime} />
-      </div>
+      <Card className="mt-4 p-3 flex items-center gap-3 bg-brand-50 border-brand-200">
+        <I.Refresh size={16} className="text-brand-600" />
+        <span className="text-[12.5px] text-brand-700 font-semibold">EMR 환자 검색</span>
+        <span className="ml-auto text-[11px] text-brand-600 font-mono">MRN {patient.mrn}</span>
+      </Card>
 
-      <div className="mt-5 rounded-2xl bg-brand-50 border border-brand-200 p-4">
-        <div className="text-[11px] font-semibold text-brand-700 uppercase tracking-wider">예상 종료</div>
-        <div className="mt-1 text-[18px] font-bold tracking-tight text-brand-900">
-          {fmtKDateTime(app.endAt)}
+      <div className="mt-3 space-y-2.5">
+        <Field label="이름">
+          <TextInput value={patient.name} onChange={(v) => update("name", v)} placeholder="홍길동" />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field label="등록번호">
+            <TextInput value={patient.mrn} onChange={(v) => update("mrn", v)} tnum />
+          </Field>
+          <Field label="생년월일">
+            <DateInput value={patient.birth} onChange={(v) => update("birth", v)} />
+          </Field>
         </div>
-        <div className="mt-1 text-[12px] text-brand-700/80">
-          총 44시간 · 종료 시간은 ±7시간 차이가 있을 수 있습니다
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field label="요법">
+            <TextInput value={patient.regimen} onChange={(v) => update("regimen", v)} placeholder="FOLFOX" />
+          </Field>
+          <Field label="주기">
+            <TextInput value={patient.cycle} onChange={(v) => update("cycle", v)} placeholder="4 / 12" />
+          </Field>
         </div>
+
+        <Field label="병동">
+          <TextInput value={patient.ward} onChange={(v) => update("ward", v)} placeholder="12층 동병동" />
+        </Field>
+      </div>
+
+      <div className="mt-4 rounded-xl bg-ink-100/60 p-3 text-[11.5px] text-ink-600 leading-relaxed flex gap-2">
+        <I.Lock size={14} className="mt-0.5 shrink-0" />
+        <span>입력된 환자 정보는 이 기기에만 저장되며, 환자가 PDF로 내보낼 때만 외부로 나갑니다.</span>
       </div>
     </div>
   );
 };
 
-type AlarmItem = { k: "morning" | "noon" | "evening"; icon: ReactNode; label: string; hint: string };
+/** STEP 2: 처방 / 일정 */
+const StepSchedule = (): ReactNode => {
+  const { startAt, setStartAt, endAt, alarmTimes, setAlarmTimes, fmtKDateTime } = useApp();
 
-const ALARM_ITEMS: AlarmItem[] = [
-  { k: "morning", icon: <I.Sun size={18} />, label: "아침", hint: "식사 후" },
-  { k: "noon", icon: <I.Coffee size={18} />, label: "점심", hint: "식사 후" },
-  { k: "evening", icon: <I.Moon size={18} />, label: "저녁", hint: "식사 후" },
-];
+  const formatDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
 
-const SetupAlarms = (): ReactNode => {
-  const app = useApp();
-  return (
-    <div className="animate-fade-up">
-      <h2 className="text-[22px] font-bold tracking-tight">알람 시간을 설정해요</h2>
-      <p className="mt-1 text-[13px] text-ink-500">하루 3번, 식사 후로 권장됩니다</p>
+  const formatTime = (d: Date): string => {
+    const h = String(d.getHours()).padStart(2, "0");
+    const m = String(d.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  };
 
-      <div className="mt-5 space-y-2.5">
-        {ALARM_ITEMS.map((it) => (
-          <div key={it.k} className="bg-white border border-ink-200 rounded-2xl p-3.5 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
-              {it.icon}
-            </div>
-            <div className="flex-1">
-              <div className="text-[14px] font-semibold">{it.label}</div>
-              <div className="text-[11px] text-ink-500">{it.hint}</div>
-            </div>
-            <TimeInput
-              variant="chip"
-              label={`${it.label} 알람 시간`}
-              value={app.alarmTimes[it.k]}
-              onChange={(v) => app.setAlarmTimes({ ...app.alarmTimes, [it.k]: v })}
-            />
-          </div>
-        ))}
-      </div>
+  const handleDateChange = (dateStr: string): void => {
+    const [y, m, da] = dateStr.split("-").map(Number);
+    const newDate = new Date(startAt);
+    newDate.setFullYear(y, m - 1, da);
+    setStartAt(newDate);
+  };
 
-      <div className="mt-4 rounded-xl bg-ink-100/60 p-3 flex items-start gap-2 text-[12px] text-ink-600">
-        <I.Bell size={14} className="mt-0.5 shrink-0" />
-        <span>알람 시간에 푸시 알림을 보내드려요. 놓치면 30분 후 다시 알려드립니다.</span>
-      </div>
-    </div>
-  );
-};
+  const handleTimeChange = (timeStr: string): void => {
+    const [h, m] = timeStr.split(":").map(Number);
+    const newDate = new Date(startAt);
+    newDate.setHours(h, m, 0, 0);
+    setStartAt(newDate);
+  };
 
-const SetupReview = (): ReactNode => {
-  const app = useApp();
-  const rows: Array<[string, string]> = [
-    ["환자", app.patient.name],
-    ["등록번호", app.patient.mrn],
-    ["요법", app.patient.regimen],
-    ["주입 시작", fmtKDateTime(app.startAt)],
-    ["예상 종료", fmtKDateTime(app.endAt)],
-    ["알람", `${app.alarmTimes.morning} · ${app.alarmTimes.noon} · ${app.alarmTimes.evening}`],
+  const alarmFields = [
+    { key: "morning" as const, icon: <I.Sun size={16} />, label: "아침" },
+    { key: "noon" as const, icon: <I.Coffee size={16} />, label: "점심" },
+    { key: "evening" as const, icon: <I.Moon size={16} />, label: "저녁" },
   ];
+
   return (
     <div className="animate-fade-up">
-      <h2 className="text-[22px] font-bold tracking-tight">맞게 설정되었나요?</h2>
-      <p className="mt-1 text-[13px] text-ink-500">시작 후에도 설정에서 바꿀 수 있어요</p>
+      <h2 className="text-[20px] font-bold tracking-tight">주입 일정</h2>
+      <p className="mt-1 text-[12.5px] text-ink-500">병동에서 홈펌프를 연결한 정확한 시각</p>
 
-      <div className="mt-5 bg-white border border-ink-200 rounded-2xl divide-y divide-ink-100">
-        {rows.map(([k, v]) => (
-          <div key={k} className="px-4 py-3 flex justify-between items-baseline gap-3">
-            <div className="text-[12px] text-ink-500 font-medium">{k}</div>
-            <div className="text-[14px] font-semibold text-right tracking-tight">{v}</div>
+      <div className="mt-4 grid grid-cols-2 gap-2.5">
+        <Field label="시작 날짜">
+          <DateInput value={formatDate(startAt)} onChange={handleDateChange} />
+        </Field>
+        <Field label="시작 시각">
+          <TimeInput value={formatTime(startAt)} onChange={handleTimeChange} />
+        </Field>
+      </div>
+
+      <div className="mt-3 rounded-2xl bg-brand-50 border border-brand-200 p-4">
+        <div className="flex items-center gap-2 text-brand-700">
+          <I.Clock size={16} />
+          <div className="text-[11px] font-bold uppercase tracking-wider">예상 종료 (44시간 후)</div>
+        </div>
+        <div className="mt-1.5 text-[17px] font-bold tracking-tight text-brand-900">{fmtKDateTime(endAt)}</div>
+        <div className="mt-0.5 text-[11px] text-brand-700/80">종료 시간은 ±7시간 차이가 있을 수 있습니다</div>
+      </div>
+
+      <h3 className="mt-5 text-[13px] font-bold tracking-tight">점검 알람 시간</h3>
+      <p className="mt-0.5 text-[12px] text-ink-500">하루 3번, 식사 후 권장</p>
+
+      <div className="mt-2.5 space-y-2">
+        {alarmFields.map((it) => (
+          <div key={it.key} className="bg-white border border-ink-200 rounded-xl p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center">{it.icon}</div>
+            <div className="flex-1 text-[13px] font-semibold">{it.label}</div>
+            <TimeInput value={alarmTimes[it.key]} onChange={(v) => setAlarmTimes({ ...alarmTimes, [it.key]: v })} variant="chip" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/** STEP 3: 연락처 */
+const StepContact = (): ReactNode => {
+  const { patient, setPatient } = useApp();
+
+  const update = <K extends keyof typeof patient>(key: K, value: typeof patient[K]): void => {
+    setPatient({ ...patient, [key]: value });
+  };
+
+  return (
+    <div className="animate-fade-up">
+      <h2 className="text-[20px] font-bold tracking-tight">담당 의료진 · 연락처</h2>
+      <p className="mt-1 text-[12.5px] text-ink-500">이상 상황 시 환자가 이 번호로 전화하게 됩니다</p>
+
+      <div className="mt-4 space-y-2.5">
+        <Field label="담당의">
+          <TextInput value={patient.doctor} onChange={(v) => update("doctor", v)} placeholder="홍길동" />
+        </Field>
+        <Field label="담당 간호사">
+          <TextInput value={patient.nurse} onChange={(v) => update("nurse", v)} placeholder="김간호" />
+        </Field>
+        <Field label="병동 직통 (24시간)">
+          <TextInput value={patient.wardPhone} onChange={(v) => update("wardPhone", v)} placeholder="02-2072-2000" tnum />
+        </Field>
+        <Field label="응급실">
+          <TextInput value={patient.erPhone} onChange={(v) => update("erPhone", v)} placeholder="02-2072-2473" tnum />
+        </Field>
+      </div>
+
+      <div className="mt-4 rounded-xl bg-warn-50 border border-warn-500/30 p-3 flex gap-2 text-[12px] text-ink-700 leading-relaxed">
+        <I.Info size={14} className="mt-0.5 shrink-0 text-warn-600" />
+        <span>이 번호로 24시간 연결되어야 합니다. 부재중 응답 시 환자가 헷갈리지 않도록 사전에 확인해주세요.</span>
+      </div>
+    </div>
+  );
+};
+
+/** STEP 4: 확인 */
+const StepReview = (): ReactNode => {
+  const { patient, startAt, endAt, alarmTimes, fmtKDateTime } = useApp();
+
+  const rows = [
+    ["환자", `${patient.name} · ${patient.mrn}`],
+    ["요법 / 주기", `${patient.regimen} · ${patient.cycle}`],
+    ["병동", patient.ward],
+    ["주입 시작", fmtKDateTime(startAt)],
+    ["예상 종료", fmtKDateTime(endAt)],
+    ["알람", `${alarmTimes.morning} · ${alarmTimes.noon} · ${alarmTimes.evening}`],
+    ["담당", `${patient.doctor} 선생님 · ${patient.nurse} 간호사`],
+    ["병동 직통", patient.wardPhone],
+    ["응급실", patient.erPhone],
+  ];
+
+  return (
+    <div className="animate-fade-up">
+      <h2 className="text-[20px] font-bold tracking-tight">입력 내용 확인</h2>
+      <p className="mt-1 text-[12.5px] text-ink-500">환자에게 전달 전 한 번 더 검토</p>
+
+      <div className="mt-4 bg-white border border-ink-200 rounded-2xl divide-y divide-ink-100 overflow-hidden">
+        {rows.map(([k, v], i) => (
+          <div key={i} className="px-4 py-2.5 flex justify-between items-baseline gap-3">
+            <div className="text-[11.5px] text-ink-500 font-medium">{k}</div>
+            <div className="text-[13px] font-semibold text-right tracking-tight tnum">{v}</div>
           </div>
         ))}
       </div>
 
-      <div className="mt-5 rounded-2xl bg-safe-50 border border-safe-500/20 p-4 flex gap-3">
-        <I.Shield size={20} className="text-safe-600 shrink-0 mt-0.5" />
-        <div className="text-[12.5px] text-ink-700 leading-relaxed">
-          <div className="font-semibold text-safe-700 mb-0.5">준비 완료!</div>
-          이제 하루 3번 알람을 받고, 3가지 항목을 체크하면 돼요. 이상이 있으면 즉시 안내해드립니다.
-        </div>
+      <label className="mt-4 flex items-start gap-2.5 bg-white border border-ink-200 rounded-2xl p-3.5 cursor-pointer">
+        <input type="checkbox" defaultChecked className="mt-0.5 w-4 h-4 accent-brand-600 shrink-0" />
+        <span className="text-[12.5px] text-ink-700 leading-relaxed">
+          환자분께 <b>3가지 점검 항목</b>과 <b>이상 상황 시 연락 절차</b>를 구두로 설명드렸음을 확인합니다.
+        </span>
+      </label>
+    </div>
+  );
+};
+
+/** STEP 5: 전달 */
+type StepHandoffProps = { onComplete: () => void };
+
+const StepHandoff = ({ onComplete }: StepHandoffProps): ReactNode => (
+  <div className="animate-fade-up text-center mt-2">
+    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-safe-500/15">
+      <div className="w-14 h-14 rounded-full bg-safe-500 text-white flex items-center justify-center">
+        <I.Check size={28} />
       </div>
+    </div>
+
+    <h2 className="mt-4 text-[22px] font-bold tracking-tight leading-tight">환자에게 기기를 전달하세요</h2>
+    <p className="mt-1.5 text-[13px] text-ink-600">잠금 후에는 환자 모드로 전환됩니다</p>
+
+    {/* 필수 확인사항 — 브라우저 알림 */}
+    <NotifyCheck />
+
+    <div className="mt-3 bg-white border border-ink-200 rounded-2xl p-4 text-left">
+      <div className="text-[11px] font-bold text-ink-500 uppercase tracking-widest mb-2">전달 시 안내</div>
+      <ul className="space-y-2 text-[12.5px] text-ink-700 leading-relaxed">
+        <li className="flex gap-2">
+          <span className="text-brand-600 font-bold mt-0.5">①</span>
+          <span>알람이 울리면 앱을 열어 <b>3가지 점검</b>을 진행한다고 설명</span>
+        </li>
+        <li className="flex gap-2">
+          <span className="text-brand-600 font-bold mt-0.5">②</span>
+          <span>이상 발견 시 앱 안의 <b>「이상 보고」</b> 버튼으로 안내받기</span>
+        </li>
+        <li className="flex gap-2">
+          <span className="text-brand-600 font-bold mt-0.5">③</span>
+          <span>다음 외래 방문 시 <b>PDF 기록</b>을 의료진에게 보여주기</span>
+        </li>
+      </ul>
+    </div>
+
+    <div className="mt-3 rounded-xl bg-ink-100/60 p-3 flex items-start gap-2 text-[11.5px] text-ink-600 leading-relaxed text-left">
+      <I.Lock size={14} className="mt-0.5 shrink-0" />
+      <span>설정은 잠금됩니다. 변경이 필요하면 설정 → 의료진 코드로 다시 잠금 해제할 수 있습니다.</span>
+    </div>
+
+    <Button variant="primary" full className="mt-5" onClick={onComplete} icon={<I.Lock size={16} />}>
+      잠그고 환자 모드로 전환
+    </Button>
+  </div>
+);
+
+/** 브라우저 감지 */
+type BrowserInfo = { name: string; icon: string };
+
+const detectBrowser = (): BrowserInfo => {
+  if (typeof window === "undefined") return { name: "브라우저", icon: "🌐" };
+  const ua = navigator.userAgent;
+  if (/SamsungBrowser/i.test(ua)) return { name: "Samsung Internet", icon: "🌐" };
+  if (/Edg\//i.test(ua)) return { name: "Microsoft Edge", icon: "🌐" };
+  if (/Chrome\//i.test(ua) && !/OPR|Edg/i.test(ua)) return { name: "Chrome", icon: "🌐" };
+  if (/Firefox\//i.test(ua)) return { name: "Firefox", icon: "🦊" };
+  if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) return { name: "Safari", icon: "🧭" };
+  return { name: "브라우저", icon: "🌐" };
+};
+
+/** PWA / standalone 감지 */
+const isStandalone = (): boolean => {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as { standalone?: boolean }).standalone === true
+  );
+};
+
+/** 알림 권한 확인 및 테스트 컴포넌트 */
+type NotifyPermission = "granted" | "default" | "denied" | "unsupported";
+type TestState = "idle" | "sending" | "sent" | "fail";
+
+const NotifyCheck = (): ReactNode => {
+  const supported = typeof window !== "undefined" && "Notification" in window;
+  const [perm, setPerm] = useState<NotifyPermission>(
+    supported ? (Notification.permission as NotifyPermission) : "unsupported"
+  );
+  const [testState, setTestState] = useState<TestState>("idle");
+  const [showHelp, setShowHelp] = useState(false);
+  const browser = detectBrowser();
+  const standalone = isStandalone();
+  const iOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+  const requestPermission = async (): Promise<void> => {
+    if (!supported) return;
+    try {
+      const result = await Notification.requestPermission();
+      setPerm(result as NotifyPermission);
+    } catch {
+      setPerm("denied");
+    }
+  };
+
+  const sendTest = async (): Promise<void> => {
+    if (!supported) return;
+    if (perm !== "granted") {
+      await requestPermission();
+      if (Notification.permission !== "granted") {
+        setTestState("fail");
+        return;
+      }
+    }
+    setTestState("sending");
+    try {
+      const n = new Notification("HomeCare 알람 테스트", {
+        body: "이렇게 알람이 도착해요 · 13:00 점심 점검 시간입니다",
+        tag: "homecare-test",
+      });
+      n.onclick = (): void => {
+        window.focus();
+        n.close();
+      };
+      setTimeout(() => setTestState("sent"), 400);
+    } catch {
+      setTestState("fail");
+    }
+  };
+
+  const tones: Record<NotifyPermission, { bg: string; border: string; chipBg: string; chipText: string; label: string; icon: ReactNode }> = {
+    granted: { bg: "bg-safe-50", border: "border-safe-200", chipBg: "bg-safe-500", chipText: "text-white", label: "허용됨", icon: <I.CheckCircle size={14} /> },
+    default: { bg: "bg-warn-50", border: "border-warn-500/30", chipBg: "bg-warn-500", chipText: "text-white", label: "권한 미요청", icon: <I.Bell size={14} /> },
+    denied: { bg: "bg-danger-50", border: "border-danger-200", chipBg: "bg-danger-600", chipText: "text-white", label: "차단됨", icon: <I.X size={14} /> },
+    unsupported: { bg: "bg-ink-100", border: "border-ink-200", chipBg: "bg-ink-500", chipText: "text-white", label: "미지원", icon: <I.Warn size={14} /> },
+  };
+  const t = tones[perm];
+
+  return (
+    <div className={cx("mt-5 rounded-2xl border p-4 text-left", t.bg, t.border)}>
+      <div className="flex items-center gap-2 mb-2">
+        <I.Bell size={16} className="text-ink-800" />
+        <span className="text-[11px] font-bold text-ink-800 uppercase tracking-widest">필수 확인 — 웹 알림</span>
+      </div>
+      <div className="text-[12.5px] text-ink-700 leading-relaxed">
+        환자가 알람을 받으려면 이 브라우저의 <b>알림 권한</b>이 허용되어 있어야 해요.
+      </div>
+
+      {/* Status grid */}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <StatusCell label="브라우저" value={`${browser.icon} ${browser.name}`} ok />
+        <StatusCell
+          label="알림 권한"
+          chip={
+            <span className={cx("inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold", t.chipBg, t.chipText)}>
+              {t.icon}
+              {t.label}
+            </span>
+          }
+          ok={perm === "granted"}
+        />
+      </div>
+
+      {/* iOS + non-standalone warning */}
+      {iOS && !standalone && (
+        <div className="mt-2 rounded-lg bg-warn-100 border border-warn-500/30 p-2.5 flex items-start gap-2 text-[11.5px] text-warn-600 leading-relaxed">
+          <I.Warn size={14} className="mt-0.5 shrink-0" />
+          <span><b>iOS</b>는 Safari &quot;홈 화면에 추가&quot; 후 PWA로 실행해야 알림이 작동해요.</span>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="mt-3 flex gap-2">
+        {perm !== "granted" && perm !== "unsupported" && (
+          <Button variant="outline" size="md" onClick={requestPermission} icon={<I.Bell size={14} />} className="flex-1 !text-[12.5px]">
+            권한 요청
+          </Button>
+        )}
+        <Button
+          variant={perm === "granted" ? "primary" : "secondary"}
+          size="md"
+          onClick={sendTest}
+          disabled={perm === "unsupported" || perm === "denied"}
+          icon={testState === "sent" ? <I.Check size={14} /> : <I.Spark size={14} />}
+          className="flex-1 !text-[12.5px]"
+        >
+          {testState === "sent" ? "알림 발송됨" : testState === "sending" ? "발송 중..." : "테스트 알림 보내기"}
+        </Button>
+      </div>
+
+      {/* Test result feedback */}
+      {testState === "sent" && (
+        <div className="mt-2.5 rounded-lg bg-safe-100 border border-safe-200 p-2.5 flex items-start gap-2 text-[11.5px] text-safe-700 leading-relaxed">
+          <I.CheckCircle size={14} className="mt-0.5 shrink-0" />
+          <span>
+            <b>화면에 알림이 표시되었나요?</b> 환자분께 같은 방식으로 매일 3회 알람이 도착한다고 안내해주세요.
+          </span>
+        </div>
+      )}
+      {testState === "fail" && (
+        <div className="mt-2.5 rounded-lg bg-danger-50 border border-danger-200 p-2.5 flex items-start gap-2 text-[11.5px] text-danger-700 leading-relaxed">
+          <I.Warn size={14} className="mt-0.5 shrink-0" />
+          <span>알림을 보낼 수 없어요. 권한이 차단되었는지 확인해주세요.</span>
+        </div>
+      )}
+
+      {/* Help toggle */}
+      <button
+        onClick={() => setShowHelp((s) => !s)}
+        className="mt-2.5 w-full text-[11.5px] font-semibold text-brand-700 flex items-center justify-center gap-1 py-1"
+      >
+        {browser.name}에서 알림 켜는 법
+        <I.ChevDown size={14} className={cx("transition", showHelp && "rotate-180")} />
+      </button>
+      {showHelp && <HelpInstructions browser={browser.name} iOS={iOS} standalone={standalone} />}
+    </div>
+  );
+};
+
+/** 상태 표시 셀 */
+type StatusCellProps = { label: string; value?: string; chip?: ReactNode; ok?: boolean };
+
+const StatusCell = ({ label, value, chip, ok }: StatusCellProps): ReactNode => (
+  <div className={cx("rounded-xl bg-white border p-2.5", ok ? "border-safe-200" : "border-ink-200")}>
+    <div className="text-[10px] font-bold text-ink-500 uppercase tracking-widest">{label}</div>
+    <div className="mt-1 text-[12.5px] font-semibold text-ink-800 truncate">
+      {chip || value}
+    </div>
+  </div>
+);
+
+/** 브라우저별 알림 설정 안내 */
+type HelpInstructionsProps = { browser: string; iOS: boolean; standalone: boolean };
+
+const HelpInstructions = ({ browser, iOS, standalone }: HelpInstructionsProps): ReactNode => {
+  const guides: Record<string, string[]> = {
+    Safari: [
+      "Safari 메뉴 → 설정 → 웹사이트 → 알림",
+      "이 사이트를 찾아 \"허용\"으로 변경",
+      iOS && !standalone ? "iOS는 공유 → \"홈 화면에 추가\" 후 다시 시도" : "",
+    ].filter(Boolean),
+    Chrome: [
+      "주소창 왼쪽 자물쇠 🔒 아이콘 → 사이트 설정",
+      "\"알림\" 항목을 \"허용\"으로 변경",
+      "페이지 새로고침",
+    ],
+    "Microsoft Edge": [
+      "주소창 왼쪽 자물쇠 🔒 → 사이트 권한",
+      "\"알림\"을 \"허용\"으로 설정",
+    ],
+    Firefox: [
+      "주소창 왼쪽 자물쇠 🔒 → 알림 권한 편집",
+      "\"허용\"으로 변경 후 새로고침",
+    ],
+    "Samsung Internet": [
+      "메뉴 → 설정 → 사이트 및 다운로드 → 사이트 권한",
+      "이 사이트의 알림 권한을 \"허용\"으로 변경",
+    ],
+  };
+  const steps = guides[browser] || guides.Chrome;
+
+  return (
+    <div className="mt-2 rounded-lg bg-white/70 border border-ink-200 p-3 animate-fade-up">
+      <ol className="space-y-1.5 text-[12px] text-ink-700 leading-relaxed">
+        {steps.map((s, i) => (
+          <li key={i} className="flex gap-2">
+            <span className="text-brand-600 font-bold shrink-0">{i + 1}.</span>
+            <span>{s}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 };

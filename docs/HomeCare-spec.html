@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HomeCare — Technical Spec</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink-900:#0F172A; --ink-800:#1E293B; --ink-700:#334155; --ink-600:#475569;
+    --ink-500:#64748B; --ink-400:#94A3B8; --ink-300:#CBD5E1; --ink-200:#E2E8F0;
+    --ink-100:#F1F5F9; --ink-50:#F8FAFC;
+    --brand-50:#EFF6FF; --brand-100:#DBEAFE; --brand-200:#BFDBFE;
+    --brand-500:#3B82F6; --brand-600:#2563EB; --brand-700:#1D4ED8; --brand-900:#0B1E3F;
+    --safe-50:#ECFDF5; --safe-500:#10B981; --safe-600:#059669; --safe-700:#047857;
+    --warn-50:#FFFBEB; --warn-500:#F59E0B; --warn-600:#D97706;
+    --danger-50:#FEF2F2; --danger-500:#EF4444; --danger-600:#DC2626; --danger-700:#B91C1C;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif;
+    color: var(--ink-900); background: var(--ink-50);
+    line-height: 1.6; font-feature-settings: 'tnum' 1;
+  }
+  .mono, code, pre { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: normal; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  .shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; max-width: 1400px; margin: 0 auto; background: white; }
+  aside { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; padding: 32px 24px; border-right: 1px solid var(--ink-200); background: var(--ink-50); }
+  aside .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  aside .brand .logo { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-600); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; letter-spacing: -.02em; }
+  aside .brand .name { font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+  aside .brand .sub  { font-size: 10px; font-weight: 700; color: var(--brand-700); letter-spacing: .12em; text-transform: uppercase; margin-top: -2px; }
+  aside nav h4 { margin: 16px 0 6px; font-size: 10px; font-weight: 700; color: var(--ink-500); letter-spacing: .12em; text-transform: uppercase; }
+  aside nav a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--ink-700); text-decoration: none; font-size: 13px; font-weight: 500; }
+  aside nav a:hover { background: var(--ink-100); color: var(--ink-900); }
+
+  main { padding: 56px 64px 96px; max-width: 980px; }
+
+  h1 { font-size: 36px; font-weight: 800; letter-spacing: -.02em; line-height: 1.15; margin: 0 0 8px; }
+  h1 .badge { display: inline-block; vertical-align: middle; margin-left: 10px; padding: 4px 10px; font-size: 11px; font-weight: 700; background: var(--ink-100); color: var(--ink-700); border-radius: 999px; letter-spacing: .04em; text-transform: uppercase; }
+  h2 { font-size: 24px; font-weight: 700; letter-spacing: -.015em; margin: 56px 0 12px; padding-top: 16px; border-top: 1px solid var(--ink-200); }
+  h2 .step { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; background: var(--brand-600); color: white; font-size: 13px; font-weight: 700; margin-right: 10px; vertical-align: middle; }
+  h3 { font-size: 17px; font-weight: 700; margin: 28px 0 8px; letter-spacing: -.01em; }
+  h4 { font-size: 14px; font-weight: 700; margin: 18px 0 6px; color: var(--ink-700); }
+  p { margin: 6px 0 14px; color: var(--ink-700); }
+  p.lead { font-size: 16px; color: var(--ink-600); }
+  hr { border: none; border-top: 1px dashed var(--ink-200); margin: 32px 0; }
+  ul, ol { padding-left: 22px; color: var(--ink-700); }
+  ul li, ol li { margin-bottom: 4px; }
+
+  code { background: var(--ink-100); color: var(--ink-800); padding: 1px 6px; border-radius: 4px; font-size: 12.5px; }
+  pre { background: var(--ink-900); color: #E2E8F0; padding: 16px 18px; border-radius: 10px; overflow-x: auto; font-size: 12.5px; line-height: 1.65; margin: 12px 0 20px; }
+  pre .k { color: #C4B5FD; }
+  pre .s { color: #86EFAC; }
+  pre .c { color: #64748B; font-style: italic; }
+  pre .n { color: #FDA4AF; }
+  pre .t { color: #93C5FD; }
+  pre .p { color: #FCD34D; }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 12px 0 20px; font-size: 13px; border: 1px solid var(--ink-200); border-radius: 8px; overflow: hidden; }
+  thead th { background: var(--ink-50); color: var(--ink-500); font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--ink-200); }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--ink-100); vertical-align: top; color: var(--ink-700); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody td:first-child { font-weight: 600; color: var(--ink-900); white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  .callout { border-left: 3px solid var(--brand-500); background: var(--brand-50); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 13.5px; color: var(--brand-900); }
+  .callout.warn { border-color: var(--warn-500); background: var(--warn-50); color: var(--warn-600); }
+  .callout.danger { border-color: var(--danger-500); background: var(--danger-50); color: var(--danger-700); }
+  .callout.safe { border-color: var(--safe-500); background: var(--safe-50); color: var(--safe-700); }
+  .callout .label { display: block; font-weight: 700; font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--ink-100); color: var(--ink-700); margin-right: 4px; }
+  .tag.brand  { background: var(--brand-100); color: var(--brand-700); }
+  .tag.safe   { background: var(--safe-50);   color: var(--safe-700); }
+  .tag.warn   { background: var(--warn-50);   color: var(--warn-600); }
+  .tag.danger { background: var(--danger-50); color: var(--danger-700); }
+
+  .step-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 10px 0 18px; }
+  .step-meta .item { background: var(--ink-50); border: 1px solid var(--ink-200); padding: 8px 12px; border-radius: 8px; }
+  .step-meta .k { font-size: 10px; font-weight: 700; color: var(--ink-500); text-transform: uppercase; letter-spacing: .08em; }
+  .step-meta .v { font-size: 12.5px; font-weight: 600; color: var(--ink-800); margin-top: 2px; }
+
+  .arch { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border: 1px solid var(--ink-200); border-radius: 12px; overflow: hidden; margin: 16px 0 24px; font-size: 12px; }
+  .arch .col { padding: 16px 18px; background: white; border-right: 1px solid var(--ink-200); }
+  .arch .col:last-child { border-right: none; }
+  .arch .col h5 { font-size: 10px; font-weight: 700; color: var(--ink-500); letter-spacing: .12em; text-transform: uppercase; margin: 0 0 8px; }
+  .arch .col ul { padding-left: 16px; margin: 0; }
+  .arch .col li { margin-bottom: 3px; color: var(--ink-700); font-size: 12.5px; }
+  .arch .header { background: var(--ink-900); color: white; padding: 6px 12px; font-size: 11px; font-weight: 600; }
+
+  .quick-toc { background: var(--ink-50); border: 1px solid var(--ink-200); border-radius: 10px; padding: 16px 20px; margin: 24px 0; }
+  .quick-toc h4 { margin-top: 0; }
+  .quick-toc ol { columns: 2; column-gap: 36px; margin: 0; padding-left: 18px; }
+
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    aside { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--ink-200); }
+    main { padding: 32px 24px 64px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside>
+  <div class="brand">
+    <div class="logo">HC</div>
+    <div>
+      <div class="sub">Tech Spec v0.1</div>
+      <div class="name">HomeCare</div>
+    </div>
+  </div>
+  <nav>
+    <h4>Overview</h4>
+    <a href="#summary">요약 · 목표</a>
+    <a href="#stack">기술 스택</a>
+    <a href="#arch">아키텍처</a>
+    <a href="#data">데이터 모델</a>
+    <a href="#storage">저장 / 동기화</a>
+
+    <h4>Flow (Step-by-step)</h4>
+    <a href="#s1">1. 의료진 입력</a>
+    <a href="#s2">2. 환자 인수</a>
+    <a href="#s3">3. 홈 / 진행 추적</a>
+    <a href="#s4">4. 3단계 체크</a>
+    <a href="#s5">5. 이상 상황 대처</a>
+    <a href="#s6">6. 기록 / 차트</a>
+    <a href="#s7">7. PDF 내보내기</a>
+    <a href="#s8">8. 주입 완료</a>
+
+    <h4>Cross-cutting</h4>
+    <a href="#notifications">알람 · 푸시</a>
+    <a href="#offline">오프라인 / PWA</a>
+    <a href="#security">보안 / 프라이버시</a>
+    <a href="#qa">테스트 · QA</a>
+    <a href="#open">Open Questions</a>
+  </nav>
+</aside>
+
+<main>
+
+<h1 id="summary">HomeCare 기술 명세서<span class="badge">v0.1 · 개발팀용</span></h1>
+<p class="lead">
+  퇴원 환자가 홈펌프(특수항암기계)로 항암제를 44시간 자가 투여하는 동안,
+  하루 3번 점검 알람 + 3가지 체크 + 이상 상황 대처 + 의료진 공유용 기록을 제공하는 모바일 웹앱입니다.
+</p>
+
+<div class="step-meta">
+  <div class="item"><div class="k">사용 기간</div><div class="v">2박 3일 (44h ±7h)</div></div>
+  <div class="item"><div class="k">플랫폼</div><div class="v">Web App (iOS / Android)</div></div>
+  <div class="item"><div class="k">데이터 저장</div><div class="v">환자 단말 로컬 (서버 X)</div></div>
+  <div class="item"><div class="k">의료진 접근</div><div class="v">PDF 내보내기로만</div></div>
+</div>
+
+<div class="callout">
+  <span class="label">설계 원칙</span>
+  서버 의존성 없이 환자 단말에서 완결되도록 설계합니다. 어드민/관리자 콘솔은 v1 범위에서 제외하며,
+  의료진은 외래 방문 시 환자가 보여주는 PDF로만 기록을 확인합니다.
+</div>
+
+<div class="quick-toc">
+  <h4>한 페이지 흐름 요약</h4>
+  <ol>
+    <li><b>의료진 입력</b> — 수동 입력 → 잠금</li>
+    <li><b>환자 인수</b> — 단말 전달, 짧은 온보딩</li>
+    <li><b>대시보드</b> — 진행률, 다음 알람 카운트다운</li>
+    <li><b>점검 플로우</b> — 눈금 / 잠금장치 / 온도센서</li>
+    <li><b>이상 상황</b> — 5가지 시나리오 + 직통 전화</li>
+    <li><b>기록</b> — 타임라인 + 눈금 추이 차트</li>
+    <li><b>PDF</b> — 외래 진료용 리포트</li>
+    <li><b>완료</b> — 눈금 0 → 병원 복귀 안내</li>
+  </ol>
+</div>
+
+<h2 id="stack">기술 스택</h2>
+<table>
+  <thead><tr><th>Layer</th><th>Choice</th><th>이유</th></tr></thead>
+  <tbody>
+    <tr><td>Framework</td><td>Next.js 14 (App Router)</td><td>RSC 불필요 — 전부 client. SSG 정적 export 가능</td></tr>
+    <tr><td>Language</td><td>TypeScript</td><td>도메인 모델 안전성</td></tr>
+    <tr><td>Styling</td><td>Tailwind CSS</td><td>프로토타입 토큰 그대로 이식</td></tr>
+    <tr><td>State</td><td>Zustand + persist</td><td>전역 상태 단순 · 미들웨어로 IndexedDB 직결</td></tr>
+    <tr><td>Storage</td><td>IndexedDB (idb-keyval)</td><td>localStorage 5MB 제한 회피 · 사진 첨부 대비</td></tr>
+    <tr><td>Charts</td><td>인라인 SVG (의존성 없음)</td><td>차트 1종뿐 · 번들 사이즈 절감</td></tr>
+    <tr><td>PDF</td><td>@react-pdf/renderer</td><td>리포트 컴포넌트화 · 폰트 임베드</td></tr>
+    <tr><td>Push</td><td>Web Push (VAPID) + Service Worker</td><td>iOS 16.4+ / Android 양쪽 지원</td></tr>
+    <tr><td>Fonts</td><td>Pretendard (self-hosted)</td><td>한국어 가독성 · 오프라인 동작</td></tr>
+    <tr><td>Deploy</td><td>Vercel · 단일 도메인</td><td>HTTPS 필수 (Web Push 요구사항)</td></tr>
+  </tbody>
+</table>
+
+<h2 id="arch">아키텍처 (Client-only)</h2>
+<div class="arch">
+  <div class="col">
+    <div class="header" style="margin:-16px -18px 12px;">UI Layer</div>
+    <h5>Routes</h5>
+    <ul>
+      <li><code>/setup/*</code> — 의료진 입력</li>
+      <li><code>/intro</code> — 환자 인수</li>
+      <li><code>/</code> — 홈</li>
+      <li><code>/check/[step]</code> — 체크</li>
+      <li><code>/alert/[type]</code> — 이상 상황</li>
+      <li><code>/records</code> — 기록</li>
+      <li><code>/export</code> — PDF</li>
+      <li><code>/done</code> — 완료</li>
+    </ul>
+  </div>
+  <div class="col">
+    <div class="header" style="margin:-16px -18px 12px;">State / Logic</div>
+    <h5>Stores (Zustand)</h5>
+    <ul>
+      <li><code>usePatientStore</code></li>
+      <li><code>useScheduleStore</code></li>
+      <li><code>useChecksStore</code></li>
+      <li><code>useAlarmStore</code></li>
+      <li><code>useSettingsStore</code></li>
+    </ul>
+    <h5 style="margin-top:10px;">Services</h5>
+    <ul>
+      <li><code>notify.ts</code> — 푸시 등록 / 스케줄</li>
+      <li><code>pdf.ts</code> — 리포트 빌드</li>
+      <li><code>lock.ts</code> — 의료진 PIN</li>
+    </ul>
+  </div>
+  <div class="col">
+    <div class="header" style="margin:-16px -18px 12px;">Storage</div>
+    <h5>IndexedDB</h5>
+    <ul>
+      <li><code>patient</code> (single record)</li>
+      <li><code>schedule</code> (single record)</li>
+      <li><code>checks</code> (append-only)</li>
+      <li><code>alerts</code> (append-only)</li>
+      <li><code>settings</code></li>
+    </ul>
+    <h5 style="margin-top:10px;">Service Worker</h5>
+    <ul>
+      <li>앱 셸 (offline-first)</li>
+      <li>폰트 / 아이콘 캐시</li>
+    </ul>
+  </div>
+</div>
+<p>
+  서버는 푸시 알림 발송용 엔드포인트 (<code>POST /api/push/schedule</code>) 하나만 둡니다.
+  나머지 모든 데이터는 클라이언트 IndexedDB에 머무릅니다.
+</p>
+
+<h2 id="data">데이터 모델</h2>
+<pre><span class="c">// types/domain.ts</span>
+<span class="k">export interface</span> <span class="t">Patient</span> {
+  <span class="p">name</span>:      <span class="t">string</span>;
+  <span class="p">mrn</span>:       <span class="t">string</span>;        <span class="c">// 등록번호</span>
+  <span class="p">birth</span>:     <span class="t">string</span>;        <span class="c">// YYYY-MM-DD</span>
+  <span class="p">regimen</span>:   <span class="t">string</span>;        <span class="c">// FOLFOX / FOLFIRI / ...</span>
+  <span class="p">cycle</span>:     <span class="t">string</span>;        <span class="c">// "4 / 12"</span>
+  <span class="p">ward</span>:      <span class="t">string</span>;
+  <span class="p">doctor</span>:    <span class="t">string</span>;
+  <span class="p">nurse</span>:     <span class="t">string</span>;
+  <span class="p">wardPhone</span>: <span class="t">string</span>;
+  <span class="p">erPhone</span>:   <span class="t">string</span>;
+}
+
+<span class="k">export interface</span> <span class="t">Schedule</span> {
+  <span class="p">startAt</span>:     <span class="t">ISODateTime</span>;  <span class="c">// 의료진이 병동에서 입력</span>
+  <span class="p">totalHours</span>:  <span class="n">44</span>;
+  <span class="p">alarms</span>: { <span class="p">morning</span>: <span class="t">HHMM</span>; <span class="p">noon</span>: <span class="t">HHMM</span>; <span class="p">evening</span>: <span class="t">HHMM</span> };
+}
+
+<span class="k">export interface</span> <span class="t">Check</span> {
+  <span class="p">id</span>:        <span class="t">string</span>;
+  <span class="p">at</span>:        <span class="t">ISODateTime</span>;
+  <span class="p">slot</span>:      <span class="s">'morning'</span> | <span class="s">'noon'</span> | <span class="s">'evening'</span> | <span class="s">'adhoc'</span>;
+  <span class="p">scaleMl</span>:   <span class="t">number</span>;          <span class="c">// 풍선 잔량 ml</span>
+  <span class="p">locks</span>:     [<span class="t">boolean</span>, <span class="t">boolean</span>]; <span class="c">// [포트쪽, 펌프쪽]</span>
+  <span class="p">tempOk</span>:    <span class="t">boolean</span>;
+  <span class="p">ok</span>:        <span class="t">boolean</span>;
+  <span class="p">note</span>?:    <span class="t">string</span>;
+  <span class="p">photoBlob</span>?: <span class="t">Blob</span>;
+}
+
+<span class="k">export interface</span> <span class="t">AlertEvent</span> {
+  <span class="p">id</span>:   <span class="t">string</span>;
+  <span class="p">at</span>:   <span class="t">ISODateTime</span>;
+  <span class="p">type</span>: <span class="s">'no_change'</span> | <span class="s">'leak'</span> | <span class="s">'locked'</span> | <span class="s">'fever'</span> | <span class="s">'pain'</span>;
+  <span class="p">acknowledged</span>: <span class="t">boolean</span>;
+  <span class="p">calledWard</span>?:    <span class="t">boolean</span>;
+}
+
+<span class="k">export interface</span> <span class="t">Settings</span> {
+  <span class="p">staffLocked</span>:   <span class="t">boolean</span>;
+  <span class="p">staffPinHash</span>?: <span class="t">string</span>;
+  <span class="p">pushEndpoint</span>?: <span class="t">string</span>;
+  <span class="p">locale</span>:        <span class="s">'ko'</span>;
+}
+</pre>
+
+<h2 id="storage">저장 · 동기화 전략</h2>
+<h3>저장 위치</h3>
+<ul>
+  <li><b>IndexedDB</b>는 환자 단말의 단일 진실 공급원(SSOT)입니다.</li>
+  <li>환자 정보는 병동에서 의료진이 <b>수동 입력</b>합니다 — EMR 연동 없음.</li>
+  <li>서버에는 환자 데이터를 보내지 않습니다 (개인정보 처리 동의 부담 최소화).</li>
+</ul>
+
+<h3>Persist 미들웨어</h3>
+<pre><span class="c">// stores/persist.ts</span>
+<span class="k">import</span> { create } <span class="k">from</span> <span class="s">'zustand'</span>;
+<span class="k">import</span> { persist, createJSONStorage } <span class="k">from</span> <span class="s">'zustand/middleware'</span>;
+<span class="k">import</span> * <span class="k">as</span> idb <span class="k">from</span> <span class="s">'idb-keyval'</span>;
+
+<span class="k">const</span> idbStorage = {
+  <span class="p">getItem</span>:    <span class="k">async</span> (k: <span class="t">string</span>) =&gt; (<span class="k">await</span> idb.<span class="t">get</span>(k)) ?? <span class="k">null</span>,
+  <span class="p">setItem</span>:    <span class="k">async</span> (k: <span class="t">string</span>, v: <span class="t">string</span>) =&gt; idb.<span class="t">set</span>(k, v),
+  <span class="p">removeItem</span>: <span class="k">async</span> (k: <span class="t">string</span>) =&gt; idb.<span class="t">del</span>(k),
+};
+
+<span class="k">export const</span> usePatientStore = create&lt;<span class="t">PatientState</span>&gt;()(
+  <span class="t">persist</span>(
+    (set) =&gt; ({
+      <span class="p">patient</span>: <span class="k">null</span>,
+      <span class="p">setPatient</span>: (p) =&gt; <span class="t">set</span>({ patient: p }),
+    }),
+    { <span class="p">name</span>: <span class="s">'homecare-patient'</span>, <span class="p">storage</span>: <span class="t">createJSONStorage</span>(() =&gt; idbStorage) },
+  ),
+);
+</pre>
+
+<h3>EMR 연동 — 속편 (v2)</h3>
+<p>
+  v1은 병동에서 의료진이 <b>수동으로</b> 환자 정보를 입력합니다 — EMR 연동 없음.
+  v2에서 QR 스캔 또는 server-to-server 연동을 검토합니다.
+</p>
+<pre><span class="c">// /setup/patient — 수동 입력 저장</span>
+<span class="k">function</span> <span class="t">savePatient</span>(form: <span class="t">PatientForm</span>) {
+  <span class="k">const</span> data = PatientSchema.<span class="t">parse</span>(form);   <span class="c">// zod 검증</span>
+  <span class="t">usePatientStore.getState</span>().<span class="t">setPatient</span>(data);
+}
+</pre>
+
+<div class="callout warn">
+  <span class="label">수동 입력 주의</span>
+  환자 이름·등록번호·처방을 의료진이 직접 입력하므로, 입력 실수 방지용 검증(<code>zod</code>) 과 확인 화면을 튼튼히 두세요.
+</div>
+
+<h3>내보내기 (Export)</h3>
+<ul>
+  <li><b>PDF 저장</b> — 외래 진료 시 의료진에게 제출. <code>@react-pdf/renderer</code>로 생성 → 단말에 다운로드.</li>
+  <li><span class="tag">v2</span> <b>공유하기</b> — <code>navigator.share()</code>는 고도화로 이연. v1은 PDF 다운로드만.</li>
+</ul>
+
+<h2 id="s1"><span class="step">1</span>의료진 입력 (Staff Setup)</h2>
+<div class="step-meta">
+  <div class="item"><div class="k">Route</div><div class="v mono">/setup/*</div></div>
+  <div class="item"><div class="k">Actor</div><div class="v">병동 간호사</div></div>
+  <div class="item"><div class="k">Trigger</div><div class="v">퇴원 직전, 단말 부팅</div></div>
+  <div class="item"><div class="k">Writes</div><div class="v mono">patient, schedule, settings</div></div>
+</div>
+
+<table>
+  <thead><tr><th>Path</th><th>역할</th><th>저장되는 키</th></tr></thead>
+  <tbody>
+    <tr><td>/setup/patient</td><td>환자 정보 입력 (수동)</td><td>patient.name / mrn / birth / regimen / cycle / ward</td></tr>
+    <tr><td>/setup/schedule</td><td>주입 시작 일시 + 알람 시간</td><td>schedule.startAt / alarms</td></tr>
+    <tr><td>/setup/contact</td><td>담당의 / 케어 담당자 / 병동 직통</td><td>patient.doctor / nurse / wardPhone / erPhone</td></tr>
+    <tr><td>/setup/review</td><td>입력 내용 검토</td><td>(읽기 전용)</td></tr>
+    <tr><td>/setup/handoff</td><td>잠금 후 환자에게 전달</td><td>settings.staffLocked = true</td></tr>
+  </tbody>
+</table>
+
+<h3>잠금 메커니즘</h3>
+<p>
+  <code>settings.staffLocked = true</code>가 되면 환자 UI로 라우트됩니다.
+  설정 화면에서 의료진이 다시 입력 모드로 돌아가려면 4자리 PIN (병동 공통, <code>argon2id</code> 해시) 필요.
+</p>
+<pre><span class="c">// services/lock.ts</span>
+<span class="k">export async function</span> <span class="t">unlockStaff</span>(pin: <span class="t">string</span>): <span class="t">Promise</span>&lt;<span class="t">boolean</span>&gt; {
+  <span class="k">const</span> ok = <span class="k">await</span> <span class="t">argon2.verify</span>(settings.staffPinHash!, pin);
+  <span class="k">if</span> (ok) useSettingsStore.<span class="t">getState</span>().<span class="t">set</span>({ staffLocked: <span class="k">false</span> });
+  <span class="k">return</span> ok;
+}
+</pre>
+
+<div class="callout">
+  <span class="label">UI</span>
+  검은 헤더 + 노랑 "RN" 배지로 환자 모드와 시각적으로 명확히 구분. 환자가 실수로 들어와도 즉시 알아챌 수 있어야 합니다.
+</div>
+
+<h2 id="s2"><span class="step">2</span>환자 인수 (Patient Intro)</h2>
+<div class="step-meta">
+  <div class="item"><div class="k">Route</div><div class="v mono">/intro</div></div>
+  <div class="item"><div class="k">Reads</div><div class="v mono">patient, schedule</div></div>
+  <div class="item"><div class="k">Side effects</div><div class="v">알람 등록 / 푸시 권한</div></div>
+</div>
+
+<p>의료진이 잠금 후 환자에게 단말을 건네면 처음 보게 되는 화면입니다.</p>
+
+<h3>이 화면에서 일어나는 일</h3>
+<ol>
+  <li>알람 시각 3개를 SW에 스케줄 등록 (<a href="#notifications">§ 알람</a>)</li>
+  <li>iOS인 경우 "홈 화면에 추가" 안내 표시 → PWA 설치되어야 백그라운드 푸시 가능</li>
+  <li><code>Notification.requestPermission()</code></li>
+  <li>"시작하기" → <code>/</code></li>
+</ol>
+
+<pre><span class="c">// app/intro/page.tsx</span>
+useEffect(() =&gt; {
+  <span class="t">notifyService.scheduleDailyAlarms</span>(schedule.alarms);
+  <span class="t">Notification.requestPermission</span>();
+}, []);
+</pre>
+
+<h2 id="s3"><span class="step">3</span>홈 / 진행 추적 (Home)</h2>
+<div class="step-meta">
+  <div class="item"><div class="k">Route</div><div class="v mono">/</div></div>
+  <div class="item"><div class="k">Re-render</div><div class="v">매 분 (남은 시간)</div></div>
+  <div class="item"><div class="k">Reads</div><div class="v mono">patient, schedule, checks</div></div>
+</div>
+
+<table>
+  <thead><tr><th>요소</th><th>계산식</th></tr></thead>
+  <tbody>
+    <tr><td>progress</td><td>(now − schedule.startAt) / (44h)</td></tr>
+    <tr><td>remaining</td><td>schedule.startAt + 44h − now</td></tr>
+    <tr><td>currentScale</td><td>checks.at(−1)?.scaleMl ?? 120</td></tr>
+    <tr><td>nextAlarm</td><td>다음 도래하는 alarms[time], 자정 넘어가면 익일</td></tr>
+    <tr><td>streak</td><td>checks.filter(c =&gt; c.ok).length</td></tr>
+  </tbody>
+</table>
+
+<pre><span class="c">// hooks/useTick.ts — 분 단위 강제 리렌더</span>
+<span class="k">export function</span> <span class="t">useTick</span>(intervalMs = <span class="n">60_000</span>) {
+  <span class="k">const</span> [, set] = <span class="t">useState</span>(<span class="n">0</span>);
+  <span class="t">useEffect</span>(() =&gt; {
+    <span class="k">const</span> id = <span class="t">setInterval</span>(() =&gt; set((n) =&gt; n + <span class="n">1</span>), intervalMs);
+    <span class="k">return</span> () =&gt; <span class="t">clearInterval</span>(id);
+  }, [intervalMs]);
+}
+</pre>
+
+<h2 id="s4"><span class="step">4</span>3단계 체크 플로우 (Check)</h2>
+<div class="step-meta">
+  <div class="item"><div class="k">Route</div><div class="v mono">/check/[0..3]</div></div>
+  <div class="item"><div class="k">Writes</div><div class="v mono">checks (append)</div></div>
+  <div class="item"><div class="k">Cancellable</div><div class="v">예 (draft 사라짐)</div></div>
+</div>
+
+<table>
+  <thead><tr><th>Step</th><th>입력</th><th>이상 분기</th></tr></thead>
+  <tbody>
+    <tr><td>0 · scale</td><td>현재 눈금 (ml)</td><td>변화 없음 → /alert/no_change</td></tr>
+    <tr><td>1 · locks</td><td>잠금장치 2곳 [boolean, boolean]</td><td>하나라도 닫힘 → /alert/locked</td></tr>
+    <tr><td>2 · temp</td><td>온도센서 부착 + 재부착 안내</td><td>(이상 시에도 진행 가능)</td></tr>
+    <tr><td>3 · complete</td><td>요약 + 다음 알람 안내</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<pre><span class="c">// services/checks.ts</span>
+<span class="k">export async function</span> <span class="t">submitCheck</span>(draft: <span class="t">CheckDraft</span>) {
+  <span class="k">const</span> check: <span class="t">Check</span> = {
+    <span class="p">id</span>: <span class="t">crypto.randomUUID</span>(),
+    <span class="p">at</span>: <span class="k">new</span> <span class="t">Date</span>().<span class="t">toISOString</span>(),
+    <span class="p">slot</span>: <span class="t">resolveSlot</span>(<span class="k">new</span> <span class="t">Date</span>(), schedule.alarms),
+    ...draft,
+    <span class="p">ok</span>: <span class="t">isAllOk</span>(draft),
+  };
+  <span class="k">await</span> useChecksStore.<span class="t">getState</span>().<span class="t">add</span>(check);
+  <span class="t">notifyService.cancelMissedReminder</span>();
+}
+</pre>
+
+<h2 id="s5"><span class="step">5</span>이상 상황 대처 (Alert)</h2>
+<div class="step-meta">
+  <div class="item"><div class="k">Route</div><div class="v mono">/alert/[type]</div></div>
+  <div class="item"><div class="k">Writes</div><div class="v mono">alerts (append)</div></div>
+  <div class="item"><div class="k">CTA</div><div class="v"><code>tel:</code> → 병동 / 119</div></div>
+</div>
+
+<table>
+  <thead><tr><th>type</th><th>severity</th><th>연락처</th></tr></thead>
+  <tbody>
+    <tr><td>no_change</td><td><span class="tag warn">warn</span></td><td>병동 직통</td></tr>
+    <tr><td>leak</td><td><span class="tag danger">danger</span></td><td>병동 직통 (즉시 방문)</td></tr>
+    <tr><td>locked</td><td><span class="tag warn">warn</span></td><td>병동 직통</td></tr>
+    <tr><td>fever</td><td><span class="tag danger">danger</span></td><td>119 + 응급실</td></tr>
+    <tr><td>pain</td><td><span class="tag danger">danger</span></td><td>119 + 응급실</td></tr>
+  </tbody>
+</table>
+
+<pre><span class="c">// app/alert/[type]/page.tsx</span>
+<span class="k">const</span> wardPhone = <span class="t">usePatientStore</span>(s =&gt; s.patient!.wardPhone);
+&lt;<span class="t">a</span> <span class="p">href</span>=<span class="s">{`tel:${wardPhone}`}</span>&gt;{wardPhone}&lt;/<span class="t">a</span>&gt;
+</pre>
+
+<h2 id="s6"><span class="step">6</span>기록 · 차트 (Records)</h2>
+<div class="step-meta">
+  <div class="item"><div class="k">Route</div><div class="v mono">/records</div></div>
+  <div class="item"><div class="k">View</div><div class="v">타임라인 | 눈금 추이</div></div>
+  <div class="item"><div class="k">Reads</div><div class="v mono">checks</div></div>
+</div>
+
+<h3>눈금 추이 차트 데이터</h3>
+<ul>
+  <li>X축: <code>(check.at − schedule.startAt) / 1h</code> → 0..44 시간</li>
+  <li>Y축: <code>check.scaleMl</code> → 0..130 ml</li>
+  <li>예상선: <code>(0, 120) → (44, 0)</code> 선형 보간</li>
+  <li>"현재" 수직선: 점선, 노랑색</li>
+</ul>
+
+<pre><span class="k">function</span> <span class="t">feedbackForChecks</span>(checks: <span class="t">Check</span>[]) {
+  <span class="k">const</span> okStreak = <span class="t">currentOkStreak</span>(checks);
+  <span class="k">const</span> avgRate  = <span class="t">avgMlPerHour</span>(checks);
+  <span class="k">if</span> (avgRate &lt; <span class="n">1.5</span>) <span class="k">return</span> { tone: <span class="s">'warn'</span>,  msg: <span class="s">'줄어드는 속도가 느려요'</span> };
+  <span class="k">if</span> (okStreak &gt;= <span class="n">3</span>)  <span class="k">return</span> { tone: <span class="s">'safe'</span>,  msg: <span class="s">'예상 속도대로 잘 진행되고 있어요'</span> };
+  <span class="k">return</span>                  { tone: <span class="s">'brand'</span>, msg: <span class="s">'기록을 이어가주세요'</span> };
+}
+</pre>
+
+<h2 id="s7"><span class="step">7</span>PDF 내보내기 (Export)</h2>
+<div class="step-meta">
+  <div class="item"><div class="k">Route</div><div class="v mono">/export</div></div>
+  <div class="item"><div class="k">Library</div><div class="v mono">@react-pdf/renderer</div></div>
+  <div class="item"><div class="k">Output</div><div class="v">Blob → 다운로드</div></div>
+</div>
+
+<h3>PDF 구성</h3>
+<ol>
+  <li>헤더 — 환자 인적사항, 요법, 작성일</li>
+  <li>요약 — 총 점검 횟수, 이상 없음 횟수, 이상 보고 횟수</li>
+  <li>차트 — SVG → PNG (html-to-image) → PDF embed</li>
+  <li>점검 테이블 — 시간 / 눈금 / 잠금 / 센서 / 메모</li>
+  <li>알림 이벤트 — 시각, 종류, 조치</li>
+  <li>면책 문구 — "환자 자가 측정 기록"</li>
+</ol>
+
+<pre><span class="c">// services/pdf.ts — v1: PDF 다운로드만</span>
+<span class="k">export async function</span> <span class="t">generateReport</span>() {
+  <span class="k">const</span> [patient, schedule, checks, alerts] = <span class="k">await</span> <span class="t">Promise.all</span>([
+    <span class="t">load</span>(<span class="s">'patient'</span>),  <span class="t">load</span>(<span class="s">'schedule'</span>),
+    <span class="t">loadAll</span>(<span class="s">'checks'</span>), <span class="t">loadAll</span>(<span class="s">'alerts'</span>),
+  ]);
+  <span class="k">const</span> chartPng = <span class="k">await</span> <span class="t">renderChartToPng</span>(checks, schedule);
+  <span class="k">const</span> blob = <span class="k">await</span> <span class="t">pdf</span>(&lt;<span class="t">Report</span> {...{ patient, schedule, checks, alerts, chartPng }} /&gt;).<span class="t">toBlob</span>();
+  <span class="t">downloadBlob</span>(blob, <span class="t">filename</span>(patient));   <span class="c">// e.g. HomeCare_김민서_20389471_20260522.pdf</span>
+}
+
+<span class="c">// v2: navigator.share() 공유 기능은 고도화 단계로 이연</span>
+</pre>
+
+<h2 id="s8"><span class="step">8</span>주입 완료 (Done)</h2>
+<div class="step-meta">
+  <div class="item"><div class="k">Route</div><div class="v mono">/done</div></div>
+  <div class="item"><div class="k">Trigger</div><div class="v">checks.at(-1).scaleMl ≤ 5 또는 +44h</div></div>
+</div>
+
+<p>홈에서 트리거 조건이 충족되면 "곧 주입이 끝나요" 배너 노출 → 탭하면 <code>/done</code>으로 이동.</p>
+
+<h3>체크리스트 + 안내</h3>
+<ul>
+  <li>회송서 지참 / 헤파린 (해당 시) 지참 안내</li>
+  <li><b>잠금장치는 닫지 말 것</b> — 케모포트 막힘 방지</li>
+  <li>병동 직통 전화 CTA</li>
+  <li>최종 PDF 다운로드 진입점</li>
+</ul>
+
+<hr/>
+
+<h2 id="notifications">알람 · 푸시</h2>
+<h3>요구사항</h3>
+<ul>
+  <li>하루 3번, 환자가 설정한 시각에 푸시 알림</li>
+  <li>알람 후 30분 내 점검이 없으면 재알림 (1회)</li>
+  <li>iOS 16.4+ Safari, Android Chrome 모두 지원</li>
+</ul>
+
+<h3>구현</h3>
+<ol>
+  <li>앱이 <code>POST /api/push/subscribe</code>로 endpoint + keys 등록</li>
+  <li>서버는 환자별 알람 스케줄(시각 + 시간대)을 cron으로 보관</li>
+  <li>매 시각 도래 시 <code>web-push</code>로 발송</li>
+  <li>SW의 <code>push</code> 이벤트 핸들러가 노티 표시 → 클릭 시 <code>/check/0</code>으로 이동</li>
+</ol>
+
+<pre><span class="c">// public/sw.js</span>
+self.<span class="t">addEventListener</span>(<span class="s">'push'</span>, (e) =&gt; {
+  <span class="k">const</span> { title, body, url } = e.data.<span class="t">json</span>();
+  e.<span class="t">waitUntil</span>(self.registration.<span class="t">showNotification</span>(title, {
+    body, icon: <span class="s">'/icons/icon-192.png'</span>, badge: <span class="s">'/icons/badge.png'</span>,
+    data: { url }, tag: <span class="s">'homecare-check'</span>, renotify: <span class="k">true</span>,
+  }));
+});
+
+self.<span class="t">addEventListener</span>(<span class="s">'notificationclick'</span>, (e) =&gt; {
+  e.notification.<span class="t">close</span>();
+  e.<span class="t">waitUntil</span>(clients.<span class="t">openWindow</span>(e.notification.data.url ?? <span class="s">'/check/0'</span>));
+});
+</pre>
+
+<div class="callout warn">
+  <span class="label">iOS 주의</span>
+  iOS는 PWA로 홈 화면에 추가된 경우에만 Web Push가 작동합니다. 환자 인수 화면에서 설치를 강하게 권유해야 합니다.
+</div>
+
+<h2 id="offline">오프라인 / PWA</h2>
+<ul>
+  <li>Service Worker가 앱 셸을 cache-first로 캐시 → 인터넷 없어도 점검 가능</li>
+  <li>모든 데이터가 IndexedDB에 있으므로 동기화 충돌 우려 없음</li>
+  <li>웹 매니페스트로 홈 화면 설치 지원: <code>display: 'standalone'</code>, <code>orientation: 'portrait'</code></li>
+  <li>유저 에이전트가 PWA 모드인지 감지해서 install 안내를 조건부 노출</li>
+</ul>
+
+<h2 id="security">보안 · 프라이버시</h2>
+<table>
+  <thead><tr><th>관심사</th><th>처리</th></tr></thead>
+  <tbody>
+    <tr><td>저장 위치</td><td>환자 단말 IndexedDB. 서버에 환자식별정보 없음.</td></tr>
+    <tr><td>의료진 잠금</td><td>4자리 PIN argon2id 해시, IndexedDB <code>settings.staffPinHash</code></td></tr>
+    <tr><td>전송 시</td><td>PDF만 환자가 수동으로 의료진에게 전달</td></tr>
+    <tr><td>분실 시</td><td>의료진 모드 "전체 초기화" 버튼 → IndexedDB drop</td></tr>
+    <tr><td>로깅</td><td>서버는 푸시 발송 외 환자 데이터 미수집</td></tr>
+    <tr><td>HTTPS</td><td>Vercel 자동 발급 인증서. Web Push 필수 조건.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="qa">테스트 · QA</h2>
+<h3>유닛 우선순위</h3>
+<ol>
+  <li><code>resolveSlot()</code> — 현재 시각으로부터 morning/noon/evening 매핑</li>
+  <li><code>isAllOk()</code> — 3가지 입력 → ok 판정</li>
+  <li><code>feedbackForChecks()</code> — 안심 메시지 분기</li>
+  <li><code>nextAlarm()</code> — 자정 넘어가는 경계 케이스</li>
+</ol>
+
+<h3>E2E 시나리오 (Playwright)</h3>
+<ol>
+  <li>의료진 입력 → 잠금 → 환자 인수 → 첫 점검 완료</li>
+  <li>알람 시간에 점검 안 한 경우 30분 후 재알림</li>
+  <li>이상 보고 → 전화 CTA → 기록에 alert 추가</li>
+  <li>44시간 경과 시 완료 화면 자동 노출</li>
+  <li>PDF 생성 → 다운로드 → 파일 존재 확인</li>
+</ol>
+
+<h3>디바이스 매트릭스</h3>
+<table>
+  <thead><tr><th>Device</th><th>OS</th><th>주의사항</th></tr></thead>
+  <tbody>
+    <tr><td>iPhone 12+</td><td>iOS 16.4+</td><td>PWA 설치 필수 (Web Push 조건)</td></tr>
+    <tr><td>Galaxy S20+</td><td>Android 12+</td><td>전원 절약 모드 시 푸시 지연 확인</td></tr>
+    <tr><td>저가형 Android</td><td>Android 9</td><td>IndexedDB 용량 / 폰트 렌더 확인</td></tr>
+  </tbody>
+</table>
+
+<h2 id="open">Open Questions</h2>
+<ol>
+  <li><b>의료진 PIN</b> — 병동별 / 환자별 / 단말 공통? 운영 시나리오에 따라 결정.</li>
+  <li><b>알람 재시도</b> — 30분 후 1회로 충분? 야간 알람 정책은?</li>
+  <li><b>사진 첨부</b> — 이상 보고 시 사진 첨부 옵션 (데이터 모델에 placeholder 있음)</li>
+  <li><b>다국어</b> — v1 한국어 only. 외국인 환자 비율에 따라 영어 추가 검토.</li>
+  <li><b>EMR 연동</b> — v1은 수동 입력. v2에서 QR 스캔 또는 server-to-server 결정.</li>
+  <li><b>PDF 공유</b> — v1은 다운로드만. v2에서 <code>navigator.share()</code> / 이메일 전송 추가.</li>
+  <li><b>어드민 콘솔</b> — v2 이연. v1 운영 데이터를 보고 결정.</li>
+</ol>
+
+<hr/>
+
+<p style="color: var(--ink-400); font-size: 12px; margin-top: 40px;">
+  본 문서는 디자인 프로토타입 <code>HomeCare.html</code>을 구현 명세로 옮긴 v0.1 초안입니다.
+  데이터 모델 / API / 알람 정책은 의료진 + 병원 IT와의 추가 협의에서 확정됩니다.
+</p>
+
+</main>
+</div>
+</body>
+</html>

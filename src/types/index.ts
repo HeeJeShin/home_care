@@ -1,22 +1,62 @@
 /** Domain types for the HomeCare self-care app. */
 
-export type Route = "setup" | "tabs" | "check" | "alert" | "end" | "export";
+/** 라우트 - 기술 스펙 기준 */
+export type Route =
+  | "setup"           // 의료진 입력 모드
+  | "intro"           // 환자 인수 화면
+  | "home"            // 홈 (탭 없이 단일)
+  | "check"           // 점검 플로우
+  | "alert"           // 이상 상황
+  | "records"         // 기록
+  | "export"          // PDF 내보내기
+  | "done";           // 주입 완료
 
-export type Tab = "home" | "records" | "edu" | "settings";
+/** 의료진 설정 서브스텝 */
+export type SetupStep = "patient" | "schedule" | "contact" | "review" | "handoff";
 
+/** 점검 플로우 스텝 (0-3) */
+export type CheckStep = 0 | 1 | 2 | 3;
+
+/** 알람 슬롯 */
+export type AlarmSlot = "morning" | "noon" | "evening" | "adhoc";
+
+/** 이상 상황 타입 */
 export type AlertType = "no_change" | "leak" | "locked" | "fever" | "pain";
 
-/** A single lock toggle: true = open, false = closed, null = not answered yet. */
+/** 심각도 */
+export type Severity = "warn" | "danger";
+
+/** 연락처 대상 */
+export type ContactTarget = "ward" | "er";
+
+/** 잠금장치 값: true = 열림, false = 닫힘, null = 미응답 */
 export type LockValue = boolean | null;
 
+/** 잠금장치 쌍 [포트쪽, 펌프쪽] */
 export type LockPair = [LockValue, LockValue];
 
+/** 환자 정보 (의료진이 퇴원 전 입력) */
 export type Patient = {
   name: string;
-  mrn: string;
-  regimen: string;
+  mrn: string;           // 등록번호
+  birth: string;         // YYYY-MM-DD
+  regimen: string;       // FOLFOX / FOLFIRI / ...
+  cycle: string;         // "4 / 12"
+  ward: string;          // 병동
+  doctor: string;        // 담당의
+  nurse: string;         // 담당 간호사
+  wardPhone: string;     // 병동 직통
+  erPhone: string;       // 응급실
 };
 
+/** 주입 일정 */
+export type Schedule = {
+  startAt: string;       // ISO DateTime
+  totalHours: 44;
+  alarms: AlarmTimes;
+};
+
+/** 알람 시간 (HH:MM) */
 export type AlarmTimes = {
   morning: string;
   noon: string;
@@ -25,25 +65,41 @@ export type AlarmTimes = {
 
 export type AlarmKey = keyof AlarmTimes;
 
-/** A completed check recorded in history. */
+/** 점검 기록 */
 export type Check = {
-  at: Date;
-  scale: number;
-  locks: LockPair;
-  temp: LockValue;
+  id: string;
+  at: string;            // ISO DateTime
+  slot: AlarmSlot;
+  scaleMl: number;       // 풍선 잔량 ml
+  locks: LockPair;       // [포트쪽, 펌프쪽]
+  tempOk: boolean;
   ok: boolean;
-  note: string;
+  note?: string;
+  photoBlob?: Blob;
 };
 
-/** The in-progress check being filled out across the 3-step flow. */
-export type Draft = {
-  scale: number;
+/** 이상 상황 이벤트 */
+export type AlertEvent = {
+  id: string;
+  at: string;            // ISO DateTime
+  type: AlertType;
+  acknowledged: boolean;
+  calledWard?: boolean;
+};
+
+/** 설정 */
+export type Settings = {
+  staffLocked: boolean;
+  staffPinHash?: string;
+  pushEndpoint?: string;
+  locale: "ko";
+};
+
+/** 점검 진행 중 임시 데이터 */
+export type CheckDraft = {
+  scaleMl: number;
   locks: LockPair;
-  temp: LockValue;
+  tempOk: LockValue;
   note: string;
   photo: boolean;
 };
-
-export type Severity = "warn" | "danger";
-
-export type ContactTarget = "ward" | "er";

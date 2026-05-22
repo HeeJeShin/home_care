@@ -101,7 +101,7 @@ export const AlertScreen = (): ReactNode => {
       <div className={cx("pt-12 pb-4 px-5", isDanger ? "bg-danger-600 text-white" : "bg-warn-500 text-white")}>
         <div className="flex items-center justify-between mb-3">
           <button
-            onClick={() => app.goTo("tabs")}
+            onClick={() => app.goTo("home")}
             className="w-9 h-9 -ml-2 rounded-full flex items-center justify-center hover:bg-white/10"
           >
             <I.ChevL size={20} />
@@ -180,7 +180,7 @@ export const AlertScreen = (): ReactNode => {
             </a>
           )}
 
-          <a href="tel:02-0000-0000" className="block">
+          <a href={`tel:${app.patient.wardPhone}`} className="block">
             <div
               className={cx(
                 "rounded-2xl p-4 flex items-center gap-3 shadow-soft active:scale-[.99] transition",
@@ -206,7 +206,7 @@ export const AlertScreen = (): ReactNode => {
                 >
                   병동 직통
                 </div>
-                <div className="text-[16px] font-bold tracking-tight tnum">02-0000-0000</div>
+                <div className="text-[16px] font-bold tracking-tight tnum">{app.patient.wardPhone}</div>
                 <div className={cx("text-[11px] mt-0.5", c.contact === "er" ? "text-ink-500" : "opacity-80")}>
                   24시간 연락 가능 · 간호사실
                 </div>
@@ -217,7 +217,7 @@ export const AlertScreen = (): ReactNode => {
         </div>
 
         <button
-          onClick={() => app.goTo("tabs")}
+          onClick={() => app.goTo("home")}
           className="mt-4 w-full h-12 rounded-2xl bg-ink-100 text-ink-700 font-semibold text-[14px]"
         >
           홈으로 돌아가기

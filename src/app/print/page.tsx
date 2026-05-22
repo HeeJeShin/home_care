@@ -135,7 +135,6 @@ const PrintPage = (): ReactNode => {
                 label={p.label}
                 time={p.time}
                 initialRoute={p.route}
-                initialTab={p.tab}
                 initialAlert={p.alert ?? null}
               />
             ))}

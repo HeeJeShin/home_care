@@ -11,7 +11,7 @@ import type { Check } from "@/types";
 export const HomeScreen = (): ReactNode => {
   const app = useApp();
   const lastCheck = app.checks.at(-1);
-  const remainingScale = lastCheck?.scale ?? 120;
+  const remainingScale = lastCheck?.scaleMl ?? 120;
   const minutesToNext = Math.max(
     0,
     Math.round((app.nextAlarm.getTime() - app.now.getTime()) / 60000),
@@ -134,7 +134,7 @@ export const HomeScreen = (): ReactNode => {
         <div className="px-4 pt-5">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-[13px] font-semibold text-ink-700">최근 점검</h3>
-            <button onClick={() => app.setTab("records")} className="text-[12px] text-brand-600 font-semibold">
+            <button onClick={() => app.goTo("records")} className="text-[12px] text-brand-600 font-semibold">
               전체보기
             </button>
           </div>
@@ -151,7 +151,7 @@ export const HomeScreen = (): ReactNode => {
         {remainingScale < 30 && (
           <div className="px-4 pt-5">
             <button
-              onClick={() => app.goTo("end")}
+              onClick={() => app.goTo("done")}
               className="w-full rounded-2xl bg-safe-50 border border-safe-200 p-4 text-left flex items-center gap-3 hover:bg-safe-100/60 transition"
             >
               <div className="w-10 h-10 rounded-xl bg-safe-500 text-white flex items-center justify-center">
@@ -194,9 +194,9 @@ const RecentRow = ({ c }: RecentRowProps): ReactNode => (
       {c.ok ? <I.Check size={20} /> : <I.Warn size={18} />}
     </div>
     <div className="flex-1 min-w-0">
-      <div className="text-[13px] font-semibold tracking-tight">{fmtKShort(c.at)} 점검</div>
+      <div className="text-[13px] font-semibold tracking-tight">{fmtKShort(new Date(c.at))} 점검</div>
       <div className="text-[11px] text-ink-500 truncate">
-        눈금 {c.scale}ml · 잠금 ✓✓ · 온도센서 ✓{c.note ? ` · ${c.note}` : ""}
+        눈금 {c.scaleMl}ml · 잠금 ✓✓ · 온도센서 ✓{c.note ? ` · ${c.note}` : ""}
       </div>
     </div>
     <Pill tone={c.ok ? "safe" : "danger"}>{c.ok ? "정상" : "이상"}</Pill>
