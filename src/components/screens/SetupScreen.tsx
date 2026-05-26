@@ -228,6 +228,42 @@ const StepPatient = (): ReactNode => {
         <I.Lock size={14} className="mt-0.5 shrink-0" />
         <span>입력된 환자 정보는 이 기기에만 저장되며, 환자가 PDF로 내보낼 때만 외부로 나갑니다.</span>
       </div>
+
+      {/* 문서 링크 섹션 */}
+      <div className="mt-4 pt-4 border-t border-ink-100">
+        <div className="text-[10px] font-bold text-ink-400 uppercase tracking-widest mb-2">
+          프로젝트 문서
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/docs/HomeCare-spec.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 text-[11px] font-semibold hover:bg-brand-100 transition-colors"
+          >
+            <I.Book size={12} />
+            기술 문서
+          </a>
+          <a
+            href="https://github.com/HeeJeShin/home_care/blob/main/FEEDBACK.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-safe-50 text-safe-700 text-[11px] font-semibold hover:bg-safe-100 transition-colors"
+          >
+            <I.Check size={12} />
+            피드백 문서
+          </a>
+          <a
+            href="/docs/HomeCare-print.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ink-100 text-ink-700 text-[11px] font-semibold hover:bg-ink-200 transition-colors"
+          >
+            <I.Camera size={12} />
+            디자인 레퍼런스
+          </a>
+        </div>
+      </div>
     </div>
   );
 };

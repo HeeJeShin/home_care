@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HomeCare — 홈펌프 자가관리 (인쇄용)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          brand: { 50:'#EFF6FF',100:'#DBEAFE',200:'#BFDBFE',500:'#3B82F6',600:'#2563EB',700:'#1D4ED8',900:'#0B1E3F' },
+          safe:  { 50:'#ECFDF5',100:'#D1FAE5',500:'#10B981',600:'#059669',700:'#047857' },
+          warn:  { 50:'#FFFBEB',500:'#F59E0B',600:'#D97706' },
+          danger:{ 50:'#FEF2F2',100:'#FEE2E2',500:'#EF4444',600:'#DC2626',700:'#B91C1C' },
+          ink:   { 50:'#F8FAFC',100:'#F1F5F9',200:'#E2E8F0',300:'#CBD5E1',400:'#94A3B8',500:'#64748B',600:'#475569',700:'#334155',800:'#1E293B',900:'#0F172A' },
+        },
+        boxShadow: {
+          'card':   '0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06)',
+          'soft':   '0 4px 16px rgba(15,23,42,.06), 0 1px 3px rgba(15,23,42,.04)',
+          'pop':    '0 20px 40px -20px rgba(15,23,42,.18), 0 4px 12px rgba(15,23,42,.06)',
+        },
+      }
+    }
+  }
+</script>
+<style>
+  html, body { background: white; }
+  body { font-family: 'Pretendard Variable', Pretendard, system-ui, sans-serif; margin: 0; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .phone-scroll::-webkit-scrollbar { width: 0; height: 0; }
+  .phone-scroll { scrollbar-width: none; }
+  .hatch { background-image: repeating-linear-gradient(135deg, #E2E8F0 0 1px, transparent 1px 8px); }
+
+  /* Disable animations for print */
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0s !important;
+  }
+
+  /* Print page layout */
+  .print-page {
+    width: 1123px;        /* A4 landscape @ 96dpi minus margins */
+    min-height: 750px;
+    margin: 0 auto 24px;
+    padding: 32px 40px;
+    background: white;
+    box-sizing: border-box;
+    page-break-after: always;
+    break-after: page;
+    position: relative;
+  }
+  .print-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .cover-inner {
+    height: 100%;
+  }
+  .cover-footer {
+    position: absolute;
+    bottom: 32px;
+    left: 40px;
+    right: 40px;
+    display: flex;
+    justify-content: space-between;
+    color: #94A3B8;
+    font-size: 11px;
+    border-top: 1px solid #E2E8F0;
+    padding-top: 10px;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+  }
+
+  .phones-row {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 60px;
+    padding-top: 30px;
+  }
+
+  /* Phone bezel — avoid splitting */
+  .phones-row > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  @media print {
+    @page { size: A4 landscape; margin: 0.5cm; }
+    body {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      background: white !important;
+    }
+    .print-page {
+      margin: 0 auto;
+      padding: 24px 32px;
+      width: auto;
+      min-height: auto;
+      box-shadow: none;
+    }
+    .cover-footer {
+      position: absolute;
+      bottom: 16px;
+    }
+  }
+
+  /* Print-only — make sure things print with colors */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+</style>
+</head>
+<body class="text-ink-900 antialiased">
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="src/icons.jsx"></script>
+  <script type="text/babel" src="src/ui.jsx"></script>
+  <script type="text/babel" src="src/state.jsx"></script>
+  <script type="text/babel" src="src/screens-setup.jsx"></script>
+  <script type="text/babel" src="src/screens-home.jsx"></script>
+  <script type="text/babel" src="src/screens-check.jsx"></script>
+  <script type="text/babel" src="src/screens-alert.jsx"></script>
+  <script type="text/babel" src="src/screens-records.jsx"></script>
+  <script type="text/babel" src="src/screens-end.jsx"></script>
+  <script type="text/babel" src="src/screens-edu.jsx"></script>
+  <script type="text/babel" src="src/app-print.jsx"></script>
+</body>
+</html>
