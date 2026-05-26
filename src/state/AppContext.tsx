@@ -185,6 +185,56 @@ type AppProviderProps = {
 /** 관리자 PIN (환자 모드에서 관리자 모드로 전환 시 필요) */
 const ADMIN_PIN = "1234";
 
+/** localStorage 키 */
+const STORAGE_KEY = "homecare-data";
+
+/** localStorage에서 데이터 로드 */
+const loadFromStorage = (): QRData | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    return JSON.parse(stored) as QRData;
+  } catch {
+    return null;
+  }
+};
+
+/** localStorage에 데이터 저장 */
+const saveToStorage = (data: QRData): void => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // 저장 실패 무시
+  }
+};
+
+/** 점검 기록 저장 키 */
+const CHECKS_STORAGE_KEY = "homecare-checks";
+
+/** 점검 기록 로드 */
+const loadChecksFromStorage = (): Check[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(CHECKS_STORAGE_KEY);
+    if (!stored) return [];
+    return JSON.parse(stored) as Check[];
+  } catch {
+    return [];
+  }
+};
+
+/** 점검 기록 저장 */
+const saveChecksToStorage = (checks: Check[]): void => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(CHECKS_STORAGE_KEY, JSON.stringify(checks));
+  } catch {
+    // 저장 실패 무시
+  }
+};
+
 export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
   // 앱 모드
   const [mode, setMode] = useState<AppMode>("admin");
@@ -331,7 +381,7 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
     return btoa(encodeURIComponent(json));
   }, [patient, startAt, alarmTimes]);
 
-  // QR 데이터에서 상태 로드
+  // QR 데이터에서 상태 로드 (localStorage에도 저장)
   const loadFromQRData = useCallback((encoded: string): boolean => {
     try {
       const json = decodeURIComponent(atob(encoded));
@@ -343,6 +393,8 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
       setStaffLocked(true);
       setRoute("intro");
       setChecks([]);
+      // localStorage에 저장 (홈화면 추가 시에도 데이터 유지)
+      saveToStorage(data);
       return true;
     } catch {
       return false;
@@ -356,24 +408,55 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
       setStaffLocked(false);
       setRoute("setup");
       setSetupStep("patient");
+      // localStorage 클리어
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(CHECKS_STORAGE_KEY);
+      }
       return true;
     }
     return false;
   }, []);
 
-  // URL 쿼리스트링에서 QR 데이터 로드 (최초 마운트 시)
+  // 데이터 로드 (최초 마운트 시): URL 쿼리스트링 우선, 없으면 localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // 1. URL 쿼리스트링 확인
     const params = new URLSearchParams(window.location.search);
     const encoded = params.get("d");
     if (encoded) {
       const success = loadFromQRData(encoded);
       if (success) {
-        // URL에서 쿼리스트링 제거 (히스토리 교체)
+        // URL에서 쿼리스트링 제거 (데이터는 이미 localStorage에 저장됨)
         window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+    }
+
+    // 2. localStorage에서 로드 (홈화면 추가 후 재진입 시)
+    const stored = loadFromStorage();
+    if (stored) {
+      setPatient(stored.patient);
+      setStartAt(new Date(stored.startAt));
+      setAlarmTimes(stored.alarmTimes);
+      setMode("patient");
+      setStaffLocked(true);
+      setRoute("home"); // 이미 인트로를 본 사용자는 홈으로
+      // 점검 기록도 로드
+      const storedChecks = loadChecksFromStorage();
+      if (storedChecks.length > 0) {
+        setChecks(storedChecks);
       }
     }
   }, [loadFromQRData]);
+
+  // 점검 기록이 변경되면 localStorage에 저장
+  useEffect(() => {
+    if (checks.length > 0) {
+      saveChecksToStorage(checks);
+    }
+  }, [checks]);
 
   const value: AppState = {
     mode,
