@@ -1,11 +1,22 @@
-# HomeCare 구현 노트
+# 구현 노트
+
+---
+
+## HomeCare
 
 > 휴대용 항암 주입기(홈펌프) 사용 환자를 위한 자가관리 웹앱
 
-## 프로젝트 개요
-
 - **스택**: Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4
 - **특징**: 서버리스 · 오프라인 우선 · QR 기반 데이터 전송 · PWA
+
+---
+
+## Migration
+
+> JSP → Next.js 마이그레이션, 온라인 행사 플랫폼
+
+- **스택**: Next.js · React · TypeScript
+- **특징**: 레거시 JSP 시스템을 모던 프론트엔드로 전환
 
 ---
 
