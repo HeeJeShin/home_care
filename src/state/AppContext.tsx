@@ -185,54 +185,123 @@ type AppProviderProps = {
 /** 관리자 PIN (환자 모드에서 관리자 모드로 전환 시 필요) */
 const ADMIN_PIN = "1234";
 
-/** localStorage 키 */
+/** 저장소 키 */
 const STORAGE_KEY = "homecare-data";
+const CHECKS_STORAGE_KEY = "homecare-checks";
+const COOKIE_EXPIRY_DAYS = 7; // 2박3일 + 여유
 
-/** localStorage에서 데이터 로드 */
+// ============ 쿠키 헬퍼 ============
+
+/** 쿠키 설정 */
+const setCookie = (name: string, value: string, days: number): void => {
+  if (typeof document === "undefined") return;
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  // SameSite=Lax로 보안 유지, Secure는 HTTPS에서만
+  const secure = window.location.protocol === "https:" ? ";Secure" : "";
+  document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/${secure};SameSite=Lax`;
+};
+
+/** 쿠키 읽기 */
+const getCookie = (name: string): string | null => {
+  if (typeof document === "undefined") return null;
+  const matches = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return matches ? decodeURIComponent(matches[1]) : null;
+};
+
+/** 쿠키 삭제 */
+const deleteCookie = (name: string): void => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+};
+
+// ============ 통합 저장소 (localStorage + Cookie 이중화) ============
+
+/** 데이터 로드 (localStorage 우선, 없으면 쿠키) */
 const loadFromStorage = (): QRData | null => {
   if (typeof window === "undefined") return null;
   try {
+    // 1. localStorage 시도
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return null;
-    return JSON.parse(stored) as QRData;
+    if (stored) {
+      return JSON.parse(stored) as QRData;
+    }
+    // 2. 쿠키에서 시도 (Safari 백업)
+    const cookie = getCookie(STORAGE_KEY);
+    if (cookie) {
+      const data = JSON.parse(cookie) as QRData;
+      // localStorage에 복원
+      localStorage.setItem(STORAGE_KEY, cookie);
+      return data;
+    }
+    return null;
   } catch {
     return null;
   }
 };
 
-/** localStorage에 데이터 저장 */
+/** 데이터 저장 (localStorage + 쿠키 이중화) */
 const saveToStorage = (data: QRData): void => {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const json = JSON.stringify(data);
+    localStorage.setItem(STORAGE_KEY, json);
+    setCookie(STORAGE_KEY, json, COOKIE_EXPIRY_DAYS);
   } catch {
-    // 저장 실패 무시
+    // 저장 실패 시 쿠키만이라도 시도
+    try {
+      setCookie(STORAGE_KEY, JSON.stringify(data), COOKIE_EXPIRY_DAYS);
+    } catch {
+      // 완전 실패
+    }
   }
 };
-
-/** 점검 기록 저장 키 */
-const CHECKS_STORAGE_KEY = "homecare-checks";
 
 /** 점검 기록 로드 */
 const loadChecksFromStorage = (): Check[] => {
   if (typeof window === "undefined") return [];
   try {
+    // 1. localStorage 시도
     const stored = localStorage.getItem(CHECKS_STORAGE_KEY);
-    if (!stored) return [];
-    return JSON.parse(stored) as Check[];
+    if (stored) {
+      return JSON.parse(stored) as Check[];
+    }
+    // 2. 쿠키에서 시도
+    const cookie = getCookie(CHECKS_STORAGE_KEY);
+    if (cookie) {
+      const data = JSON.parse(cookie) as Check[];
+      localStorage.setItem(CHECKS_STORAGE_KEY, cookie);
+      return data;
+    }
+    return [];
   } catch {
     return [];
   }
 };
 
-/** 점검 기록 저장 */
+/** 점검 기록 저장 (localStorage + 쿠키 이중화) */
 const saveChecksToStorage = (checks: Check[]): void => {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(CHECKS_STORAGE_KEY, JSON.stringify(checks));
+    const json = JSON.stringify(checks);
+    localStorage.setItem(CHECKS_STORAGE_KEY, json);
+    setCookie(CHECKS_STORAGE_KEY, json, COOKIE_EXPIRY_DAYS);
   } catch {
-    // 저장 실패 무시
+    try {
+      setCookie(CHECKS_STORAGE_KEY, JSON.stringify(checks), COOKIE_EXPIRY_DAYS);
+    } catch {
+      // 완전 실패
+    }
   }
+};
+
+/** 저장소 전체 클리어 */
+const clearAllStorage = (): void => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(CHECKS_STORAGE_KEY);
+  deleteCookie(STORAGE_KEY);
+  deleteCookie(CHECKS_STORAGE_KEY);
 };
 
 export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
@@ -408,11 +477,8 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
       setStaffLocked(false);
       setRoute("setup");
       setSetupStep("patient");
-      // localStorage 클리어
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(CHECKS_STORAGE_KEY);
-      }
+      // 저장소 전체 클리어 (localStorage + 쿠키)
+      clearAllStorage();
       return true;
     }
     return false;
