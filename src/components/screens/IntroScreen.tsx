@@ -1,9 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useApp } from "@/state/AppContext";
+import { cx } from "@/lib/cx";
 import { I } from "@/components/icons";
-import { Button, Card, Pill } from "@/components/ui";
+import { Button, Pill } from "@/components/ui";
 import { PumpIllustration } from "@/components/illustrations/PumpIllustration";
 
 /**
@@ -101,6 +102,9 @@ export const IntroScreen = (): ReactNode => {
             <b>{alarmTimes.evening}</b>에 알람을 보내드릴게요.
           </div>
         </div>
+
+        {/* 알림 권한 요청 */}
+        <NotifyPermission />
       </div>
 
       {/* 하단 버튼 */}
@@ -117,6 +121,113 @@ export const IntroScreen = (): ReactNode => {
           언제든 기록 탭에서 과거 점검을 확인할 수 있어요
         </p>
       </div>
+    </div>
+  );
+};
+
+/** 알림 권한 요청 컴포넌트 (환자용) */
+type NotifyState = "checking" | "granted" | "denied" | "default" | "unsupported";
+type TestState = "idle" | "sending" | "sent";
+
+const NotifyPermission = (): ReactNode => {
+  const supported = typeof window !== "undefined" && "Notification" in window;
+  const [state, setState] = useState<NotifyState>(
+    supported ? (Notification.permission as NotifyState) : "unsupported"
+  );
+  const [testState, setTestState] = useState<TestState>("idle");
+
+  const requestPermission = async (): Promise<void> => {
+    if (!supported) return;
+    setState("checking");
+    try {
+      const result = await Notification.requestPermission();
+      setState(result as NotifyState);
+    } catch {
+      setState("denied");
+    }
+  };
+
+  const sendTest = async (): Promise<void> => {
+    if (!supported || state !== "granted") return;
+    setTestState("sending");
+    try {
+      new Notification("알림 테스트 성공!", {
+        body: "이렇게 점검 알림이 도착해요",
+        icon: "/icon.png",
+        tag: "homecare-test",
+      });
+      setTimeout(() => setTestState("sent"), 300);
+    } catch {
+      setTestState("idle");
+    }
+  };
+
+  if (state === "granted") {
+    return (
+      <div className="mt-4 bg-safe-50 border border-safe-200 rounded-2xl p-4">
+        <div className="flex items-center gap-2 text-safe-700">
+          <I.CheckCircle size={16} />
+          <span className="text-[12px] font-bold">알림 권한 허용됨</span>
+        </div>
+        <p className="mt-1.5 text-[12px] text-safe-700/80">
+          설정된 시간에 알림이 도착해요.
+        </p>
+        <button
+          onClick={sendTest}
+          className={cx(
+            "mt-3 w-full h-10 rounded-xl text-[13px] font-semibold transition-all",
+            testState === "sent"
+              ? "bg-safe-500 text-white"
+              : "bg-white text-safe-700 border border-safe-300 hover:bg-safe-100"
+          )}
+        >
+          {testState === "sent" ? "✓ 알림 도착!" : testState === "sending" ? "발송 중..." : "테스트 알림 보내기"}
+        </button>
+      </div>
+    );
+  }
+
+  if (state === "denied") {
+    return (
+      <div className="mt-4 bg-danger-50 border border-danger-200 rounded-2xl p-4">
+        <div className="flex items-center gap-2 text-danger-700">
+          <I.Warn size={16} />
+          <span className="text-[12px] font-bold">알림이 차단되어 있어요</span>
+        </div>
+        <p className="mt-1.5 text-[12px] text-danger-700/80">
+          브라우저 설정에서 알림을 허용해주세요.
+        </p>
+      </div>
+    );
+  }
+
+  if (state === "unsupported") {
+    return (
+      <div className="mt-4 bg-ink-100 border border-ink-200 rounded-2xl p-4">
+        <div className="flex items-center gap-2 text-ink-600">
+          <I.Info size={16} />
+          <span className="text-[12px] font-bold">이 브라우저는 알림을 지원하지 않아요</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 bg-warn-50 border border-warn-200 rounded-2xl p-4">
+      <div className="flex items-center gap-2 text-warn-700">
+        <I.Bell size={16} />
+        <span className="text-[12px] font-bold">알림 권한이 필요해요</span>
+      </div>
+      <p className="mt-1.5 text-[12px] text-warn-700/80">
+        점검 시간을 놓치지 않도록 알림을 허용해주세요.
+      </p>
+      <button
+        onClick={requestPermission}
+        disabled={state === "checking"}
+        className="mt-3 w-full h-10 rounded-xl bg-warn-500 text-white text-[13px] font-semibold hover:bg-warn-600 transition-all disabled:opacity-50"
+      >
+        {state === "checking" ? "확인 중..." : "알림 허용하기"}
+      </button>
     </div>
   );
 };

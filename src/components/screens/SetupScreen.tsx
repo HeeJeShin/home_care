@@ -4,9 +4,9 @@ import { useState, type ReactNode } from "react";
 import { useApp } from "@/state/AppContext";
 import { cx } from "@/lib/cx";
 import { I } from "@/components/icons";
-import { Button, Card } from "@/components/ui";
+import { Button, Card, QRCode } from "@/components/ui";
 import { Field, TextInput, DateInput, TimeInput } from "@/components/form";
-import type { SetupStep } from "@/types";
+import type { SetupStep, RegimenType, Gender } from "@/types";
 
 /** 의료진 설정 스텝 순서 */
 const SETUP_STEPS: SetupStep[] = ["patient", "schedule", "contact", "review", "handoff"];
@@ -125,6 +125,19 @@ const StaffHeader = ({ step, totalSteps }: StaffHeaderProps): ReactNode => (
   </div>
 );
 
+/** 요법 옵션 */
+const REGIMEN_OPTIONS: { value: RegimenType; label: string }[] = [
+  { value: "FOLFOX", label: "FOLFOX" },
+  { value: "FOLFIRI", label: "FOLFIRI" },
+  { value: "FOLFOXIRI", label: "FOLFOXIRI" },
+];
+
+/** 성별 옵션 */
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: "M", label: "남" },
+  { value: "F", label: "여" },
+];
+
 /** STEP 1: 환자 정보 */
 const StepPatient = (): ReactNode => {
   const { patient, setPatient } = useApp();
@@ -140,37 +153,74 @@ const StepPatient = (): ReactNode => {
         EMR에서 자동으로 가져오거나 수동 입력
       </p>
 
-      <Card className="mt-4 p-3 flex items-center gap-3 bg-brand-50 border-brand-200">
-        <I.Refresh size={16} className="text-brand-600" />
-        <span className="text-[12.5px] text-brand-700 font-semibold">EMR 환자 검색</span>
-        <span className="ml-auto text-[11px] text-brand-600 font-mono">MRN {patient.mrn}</span>
-      </Card>
-
-      <div className="mt-3 space-y-2.5">
+      <div className="mt-4 space-y-2.5">
         <Field label="이름">
           <TextInput value={patient.name} onChange={(v) => update("name", v)} placeholder="홍길동" />
         </Field>
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-3 gap-2.5">
+          <Field label="나이">
+            <TextInput
+              value={patient.age !== null ? String(patient.age) : ""}
+              onChange={(v) => update("age", v ? Number(v) : null)}
+              placeholder="52"
+              tnum
+            />
+          </Field>
+          <Field label="성별">
+            <div className="flex gap-1.5">
+              {GENDER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => update("gender", opt.value)}
+                  className={cx(
+                    "flex-1 h-11 rounded-xl text-[13px] font-semibold border transition-all",
+                    patient.gender === opt.value
+                      ? "bg-brand-600 text-white border-brand-600"
+                      : "bg-white text-ink-700 border-ink-200 hover:border-brand-300"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </Field>
           <Field label="등록번호">
-            <TextInput value={patient.mrn} onChange={(v) => update("mrn", v)} tnum />
-          </Field>
-          <Field label="생년월일">
-            <DateInput value={patient.birth} onChange={(v) => update("birth", v)} />
+            <TextInput value={patient.mrn} onChange={(v) => update("mrn", v)} placeholder="12345678" tnum />
           </Field>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field label="요법">
-            <TextInput value={patient.regimen} onChange={(v) => update("regimen", v)} placeholder="FOLFOX" />
-          </Field>
-          <Field label="주기">
-            <TextInput value={patient.cycle} onChange={(v) => update("cycle", v)} placeholder="4 / 12" />
-          </Field>
-        </div>
+        <Field label="생년월일">
+          <DateInput value={patient.birth} onChange={(v) => update("birth", v)} />
+        </Field>
 
-        <Field label="병동">
-          <TextInput value={patient.ward} onChange={(v) => update("ward", v)} placeholder="12층 동병동" />
+        <Field label="요법">
+          <div className="flex gap-1.5">
+            {REGIMEN_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => update("regimen", opt.value)}
+                className={cx(
+                  "flex-1 h-11 rounded-xl text-[13px] font-semibold border transition-all",
+                  patient.regimen === opt.value
+                    ? "bg-brand-600 text-white border-brand-600"
+                    : "bg-white text-ink-700 border-ink-200 hover:border-brand-300"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="차수">
+          <TextInput value={patient.round} onChange={(v) => update("round", v)} placeholder="4 / 12" />
+        </Field>
+
+        <Field label="연계병원 (선택)">
+          <TextInput value={patient.linkedHospital} onChange={(v) => update("linkedHospital", v)} placeholder="OO의원" />
         </Field>
       </div>
 
@@ -278,17 +328,14 @@ const StepContact = (): ReactNode => {
         <Field label="담당 간호사">
           <TextInput value={patient.nurse} onChange={(v) => update("nurse", v)} placeholder="김간호" />
         </Field>
-        <Field label="병동 직통 (24시간)">
+        <Field label="담당병동연락처 (선택)">
           <TextInput value={patient.wardPhone} onChange={(v) => update("wardPhone", v)} placeholder="02-2072-2000" tnum />
-        </Field>
-        <Field label="응급실">
-          <TextInput value={patient.erPhone} onChange={(v) => update("erPhone", v)} placeholder="02-2072-2473" tnum />
         </Field>
       </div>
 
-      <div className="mt-4 rounded-xl bg-warn-50 border border-warn-500/30 p-3 flex gap-2 text-[12px] text-ink-700 leading-relaxed">
-        <I.Info size={14} className="mt-0.5 shrink-0 text-warn-600" />
-        <span>이 번호로 24시간 연결되어야 합니다. 부재중 응답 시 환자가 헷갈리지 않도록 사전에 확인해주세요.</span>
+      <div className="mt-4 rounded-xl bg-ink-100/60 p-3 flex gap-2 text-[12px] text-ink-700 leading-relaxed">
+        <I.Info size={14} className="mt-0.5 shrink-0 text-ink-500" />
+        <span>연락처는 선택사항입니다. 입력 시 이상 상황에서 환자가 이 번호로 연락하게 됩니다.</span>
       </div>
     </div>
   );
@@ -298,17 +345,18 @@ const StepContact = (): ReactNode => {
 const StepReview = (): ReactNode => {
   const { patient, startAt, endAt, alarmTimes, fmtKDateTime } = useApp();
 
-  const rows = [
-    ["환자", `${patient.name} · ${patient.mrn}`],
-    ["요법 / 주기", `${patient.regimen} · ${patient.cycle}`],
-    ["병동", patient.ward],
+  // 값이 있는 항목만 표시
+  const rows: [string, string][] = [
+    ["환자", [patient.name, patient.age ? `${patient.age}세` : "", patient.gender === "M" ? "남" : patient.gender === "F" ? "여" : ""].filter(Boolean).join(" · ")],
+    patient.mrn ? ["등록번호", patient.mrn] : null,
+    patient.regimen ? ["요법 / 차수", `${patient.regimen}${patient.round ? ` · ${patient.round}` : ""}`] : null,
+    patient.linkedHospital ? ["연계병원", patient.linkedHospital] : null,
     ["주입 시작", fmtKDateTime(startAt)],
     ["예상 종료", fmtKDateTime(endAt)],
     ["알람", `${alarmTimes.morning} · ${alarmTimes.noon} · ${alarmTimes.evening}`],
-    ["담당", `${patient.doctor} 선생님 · ${patient.nurse} 간호사`],
-    ["병동 직통", patient.wardPhone],
-    ["응급실", patient.erPhone],
-  ];
+    patient.doctor || patient.nurse ? ["담당", [patient.doctor ? `${patient.doctor} 선생님` : "", patient.nurse ? `${patient.nurse} 간호사` : ""].filter(Boolean).join(" · ")] : null,
+    patient.wardPhone ? ["담당병동연락처", patient.wardPhone] : null,
+  ].filter((row): row is [string, string] => row !== null && row[1] !== "");
 
   return (
     <div className="animate-fade-up">
@@ -337,48 +385,168 @@ const StepReview = (): ReactNode => {
 /** STEP 5: 전달 */
 type StepHandoffProps = { onComplete: () => void };
 
-const StepHandoff = ({ onComplete }: StepHandoffProps): ReactNode => (
-  <div className="animate-fade-up text-center mt-2">
-    <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-safe-500/15">
-      <div className="w-14 h-14 rounded-full bg-safe-500 text-white flex items-center justify-center">
-        <I.Check size={28} />
+const StepHandoff = ({ onComplete }: StepHandoffProps): ReactNode => {
+  const { generateQRData, patient } = useApp();
+  const [showQR, setShowQR] = useState(false);
+  const [qrUrl, setQrUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleGenerateQR = (): void => {
+    const encoded = generateQRData();
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    setQrUrl(`${baseUrl}?d=${encoded}`);
+    setShowQR(true);
+  };
+
+  const handleCopyUrl = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(qrUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: 선택 후 복사
+      const input = document.createElement("input");
+      input.value = qrUrl;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const isLocalhost = typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+
+  if (showQR) {
+    return (
+      <div className="animate-fade-up text-center mt-2">
+        <h2 className="text-[20px] font-bold tracking-tight leading-tight">환자 기기로 QR 스캔</h2>
+        <p className="mt-1.5 text-[13px] text-ink-600">
+          환자의 스마트폰 카메라로 아래 QR 코드를 스캔하세요
+        </p>
+
+        <div className="mt-5 flex justify-center">
+          <QRCode value={qrUrl} size={180} />
+        </div>
+
+        {isLocalhost && (
+          <div className="mt-3 bg-warn-50 border border-warn-200 rounded-xl p-3 text-left">
+            <div className="flex items-start gap-2">
+              <I.Warn size={14} className="text-warn-600 mt-0.5 shrink-0" />
+              <div className="text-[11.5px] text-warn-700 leading-relaxed">
+                <b>로컬 테스트:</b> 같은 WiFi에서 컴퓨터 IP로 접속해야 합니다.
+                <br />터미널에서 IP 확인: <code className="bg-warn-100 px-1 rounded text-[10px]">ipconfig getifaddr en0</code>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleCopyUrl}
+          className={cx(
+            "mt-3 w-full h-10 rounded-xl text-[12px] font-semibold transition-all flex items-center justify-center gap-2",
+            copied
+              ? "bg-safe-500 text-white"
+              : "bg-ink-100 text-ink-700 hover:bg-ink-200"
+          )}
+        >
+          {copied ? (
+            <>
+              <I.Check size={14} />
+              복사됨
+            </>
+          ) : (
+            <>
+              <I.Copy size={14} />
+              URL 복사하기
+            </>
+          )}
+        </button>
+
+        <div className="mt-3 bg-brand-50 border border-brand-200 rounded-2xl p-3 text-left">
+          <div className="text-[11px] font-bold text-brand-700 uppercase tracking-widest mb-1.5">
+            {patient.name || "환자"}님 정보
+          </div>
+          <div className="text-[12px] text-brand-800">
+            QR 스캔 시 환자 기기에 자동으로 정보가 입력됩니다.
+          </div>
+        </div>
+
+        <div className="mt-3 bg-white border border-ink-200 rounded-2xl p-4 text-left">
+          <div className="text-[11px] font-bold text-ink-500 uppercase tracking-widest mb-2">환자에게 안내</div>
+          <ul className="space-y-2 text-[12.5px] text-ink-700 leading-relaxed">
+            <li className="flex gap-2">
+              <span className="text-brand-600 font-bold mt-0.5">①</span>
+              <span>스마트폰 카메라로 QR 코드 스캔</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-brand-600 font-bold mt-0.5">②</span>
+              <span>링크를 눌러 앱 열기</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="text-brand-600 font-bold mt-0.5">③</span>
+              <span><b>홈 화면에 추가</b>하여 앱처럼 사용</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <Button variant="outline" onClick={() => setShowQR(false)} className="flex-1">
+            이전
+          </Button>
+          <Button variant="primary" onClick={onComplete} className="flex-1" icon={<I.Check size={16} />}>
+            전달 완료
+          </Button>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="animate-fade-up text-center mt-2">
+      <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-safe-500/15">
+        <div className="w-14 h-14 rounded-full bg-safe-500 text-white flex items-center justify-center">
+          <I.Check size={28} />
+        </div>
+      </div>
+
+      <h2 className="mt-4 text-[22px] font-bold tracking-tight leading-tight">환자에게 QR로 전달</h2>
+      <p className="mt-1.5 text-[13px] text-ink-600">환자 기기에서 QR 스캔으로 정보를 전달합니다</p>
+
+      {/* 필수 확인사항 — 브라우저 알림 */}
+      <NotifyCheck />
+
+      <div className="mt-3 bg-white border border-ink-200 rounded-2xl p-4 text-left">
+        <div className="text-[11px] font-bold text-ink-500 uppercase tracking-widest mb-2">전달 시 안내</div>
+        <ul className="space-y-2 text-[12.5px] text-ink-700 leading-relaxed">
+          <li className="flex gap-2">
+            <span className="text-brand-600 font-bold mt-0.5">①</span>
+            <span>알람이 울리면 앱을 열어 <b>3가지 점검</b>을 진행한다고 설명</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="text-brand-600 font-bold mt-0.5">②</span>
+            <span>이상 발견 시 앱 안의 <b>「이상 보고」</b> 버튼으로 안내받기</span>
+          </li>
+          <li className="flex gap-2">
+            <span className="text-brand-600 font-bold mt-0.5">③</span>
+            <span>다음 외래 방문 시 <b>PDF 기록</b>을 의료진에게 보여주기</span>
+          </li>
+        </ul>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-brand-50 border border-brand-200 p-3 flex items-start gap-2 text-[11.5px] text-brand-700 leading-relaxed text-left">
+        <I.Info size={14} className="mt-0.5 shrink-0" />
+        <span>QR 코드에 환자 정보가 포함됩니다. 환자가 QR을 스캔하면 자동으로 정보가 입력됩니다.</span>
+      </div>
+
+      <Button variant="primary" full className="mt-5" onClick={handleGenerateQR} icon={<I.QR size={16} />}>
+        QR 코드 생성
+      </Button>
     </div>
-
-    <h2 className="mt-4 text-[22px] font-bold tracking-tight leading-tight">환자에게 기기를 전달하세요</h2>
-    <p className="mt-1.5 text-[13px] text-ink-600">잠금 후에는 환자 모드로 전환됩니다</p>
-
-    {/* 필수 확인사항 — 브라우저 알림 */}
-    <NotifyCheck />
-
-    <div className="mt-3 bg-white border border-ink-200 rounded-2xl p-4 text-left">
-      <div className="text-[11px] font-bold text-ink-500 uppercase tracking-widest mb-2">전달 시 안내</div>
-      <ul className="space-y-2 text-[12.5px] text-ink-700 leading-relaxed">
-        <li className="flex gap-2">
-          <span className="text-brand-600 font-bold mt-0.5">①</span>
-          <span>알람이 울리면 앱을 열어 <b>3가지 점검</b>을 진행한다고 설명</span>
-        </li>
-        <li className="flex gap-2">
-          <span className="text-brand-600 font-bold mt-0.5">②</span>
-          <span>이상 발견 시 앱 안의 <b>「이상 보고」</b> 버튼으로 안내받기</span>
-        </li>
-        <li className="flex gap-2">
-          <span className="text-brand-600 font-bold mt-0.5">③</span>
-          <span>다음 외래 방문 시 <b>PDF 기록</b>을 의료진에게 보여주기</span>
-        </li>
-      </ul>
-    </div>
-
-    <div className="mt-3 rounded-xl bg-ink-100/60 p-3 flex items-start gap-2 text-[11.5px] text-ink-600 leading-relaxed text-left">
-      <I.Lock size={14} className="mt-0.5 shrink-0" />
-      <span>설정은 잠금됩니다. 변경이 필요하면 설정 → 의료진 코드로 다시 잠금 해제할 수 있습니다.</span>
-    </div>
-
-    <Button variant="primary" full className="mt-5" onClick={onComplete} icon={<I.Lock size={16} />}>
-      잠그고 환자 모드로 전환
-    </Button>
-  </div>
-);
+  );
+};
 
 /** 브라우저 감지 */
 type BrowserInfo = { name: string; icon: string };

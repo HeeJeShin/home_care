@@ -478,7 +478,7 @@ const CheckComplete = (): ReactNode => {
           <I.Clock size={16} />
           <span className="text-[11px] font-bold uppercase tracking-wider">다음 점검</span>
         </div>
-        <div className="mt-1 text-[15px] font-bold tracking-tight">저녁 점검 · {app.alarmTimes.evening}</div>
+        <div className="mt-1 text-[15px] font-bold tracking-tight">{app.nextAlarmLabel} 점검 · {app.fmtHM(app.nextAlarm)}</div>
         <div className="text-[12px] text-ink-500 mt-0.5">알람을 보내드릴게요</div>
       </div>
 

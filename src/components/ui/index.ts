@@ -23,3 +23,5 @@ export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";
 export { Modal, ConfirmModal } from "./Modal";
 export type { ModalProps, ConfirmModalProps } from "./Modal";
+export { QRCode } from "./QRCode";
+export type { QRCodeProps } from "./QRCode";

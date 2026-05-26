@@ -1,6 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { useApp } from "@/state/AppContext";
 import { fmtKShort } from "@/lib/format";
 import { I } from "@/components/icons";
@@ -13,6 +15,47 @@ import type { Check } from "@/types";
  */
 export const ExportScreen = (): ReactNode => {
   const app = useApp();
+  const reportRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleDownloadPDF = async (): Promise<void> => {
+    if (!reportRef.current || isGenerating) return;
+
+    setIsGenerating(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+      const imgX = (pdfWidth - imgWidth * ratio) / 2;
+      const imgY = 10;
+
+      pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio);
+
+      const fileName = `HomeCare_${app.patient.name || "기록"}_${fmtKShort(new Date()).replace(/[/\s:]/g, "-")}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error("PDF 생성 실패:", error);
+      alert("PDF 생성에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-ink-100">
       <TopBar
@@ -25,7 +68,7 @@ export const ExportScreen = (): ReactNode => {
       />
 
       <div className="flex-1 overflow-auto phone-scroll p-4">
-        <div className="bg-white rounded-lg shadow-pop mx-auto" style={{ width: 320 }}>
+        <div ref={reportRef} className="bg-white rounded-lg shadow-pop mx-auto" style={{ width: 320 }}>
           <div className="p-4">
             <div className="flex items-center justify-between border-b border-ink-200 pb-2">
               <div>
@@ -40,9 +83,9 @@ export const ExportScreen = (): ReactNode => {
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
-              <Row k="환자" v={app.patient.name} />
-              <Row k="등록번호" v={app.patient.mrn} />
-              <Row k="요법" v={app.patient.regimen} />
+              {app.patient.name && <Row k="환자" v={app.patient.name} />}
+              {app.patient.mrn && <Row k="등록번호" v={app.patient.mrn} />}
+              {app.patient.regimen && <Row k="요법" v={app.patient.regimen} />}
               <Row k="작성일" v={fmtKShort(app.now)} />
               <Row k="주입 시작" v={fmtKShort(app.startAt)} />
               <Row k="예상 종료" v={fmtKShort(app.endAt)} />
@@ -87,15 +130,18 @@ export const ExportScreen = (): ReactNode => {
           </div>
         </div>
 
-        <div className="mt-5 space-y-2">
-          <Button variant="primary" full icon={<I.Download size={18} />}>
-            PDF로 저장
-          </Button>
-          <Button variant="outline" full icon={<I.Share size={18} />}>
-            공유하기
+        <div className="mt-5">
+          <Button
+            variant="primary"
+            full
+            icon={isGenerating ? undefined : <I.Download size={18} />}
+            onClick={handleDownloadPDF}
+            disabled={isGenerating}
+          >
+            {isGenerating ? "PDF 생성 중..." : "PDF로 저장"}
           </Button>
         </div>
-        <div className="mt-3 text-[11px] text-ink-500 text-center">
+        <div className="mt-3 text-[11px] text-ink-500 text-center pb-4">
           저장한 PDF를 외래 진료 시 의료진에게 보여주세요
         </div>
       </div>

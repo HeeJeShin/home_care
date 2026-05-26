@@ -80,14 +80,16 @@ export const HomeScreen = (): ReactNode => {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-[11px] font-semibold text-ink-500 uppercase tracking-wider">다음 점검</div>
-                <div className="mt-1 text-[16px] font-bold tracking-tight">점심 · {fmtHM(app.nextAlarm)}</div>
+                <div className="mt-1 text-[16px] font-bold tracking-tight">{app.nextAlarmLabel} · {fmtHM(app.nextAlarm)}</div>
                 <div className="mt-0.5 text-[12px] text-ink-500 tnum">
                   {nextH > 0 ? `${nextH}시간 ` : ""}
                   {nextM}분 후
                 </div>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-warn-50 text-warn-600 flex items-center justify-center">
-                <I.Coffee size={22} />
+                {app.nextAlarmSlot === "morning" && <I.Sun size={22} />}
+                {app.nextAlarmSlot === "noon" && <I.Coffee size={22} />}
+                {app.nextAlarmSlot === "evening" && <I.Moon size={22} />}
               </div>
             </div>
             <Button variant="primary" full className="mt-4" onClick={app.startCheck} iconRight={<I.ChevR size={16} />}>

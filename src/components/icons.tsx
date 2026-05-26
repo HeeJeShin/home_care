@@ -131,6 +131,12 @@ export const I: Record<string, IconComponent> = {
       <path d="M5 20h14" />
     </Icon>
   ),
+  Copy: (p) => (
+    <Icon {...p}>
+      <rect x="9" y="9" width="10" height="12" rx="2" />
+      <path d="M5 15V5a2 2 0 012-2h8" />
+    </Icon>
+  ),
   Plus: (p) => (
     <Icon {...p}>
       <path d="M12 5v14M5 12h14" />
@@ -233,6 +239,14 @@ export const I: Record<string, IconComponent> = {
   Dot: (p) => (
     <Icon {...p} fill="currentColor">
       <circle cx="12" cy="12" r="2" />
+    </Icon>
+  ),
+  QR: (p) => (
+    <Icon {...p}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3M17 17h4v4M14 20v1" />
     </Icon>
   ),
 };

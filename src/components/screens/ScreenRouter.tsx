@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useApp } from "@/state/AppContext";
+import { useAlarmScheduler } from "@/hooks/useAlarmScheduler";
 import { BottomNav } from "@/components/ui";
 import { SetupScreen } from "./SetupScreen";
 import { IntroScreen } from "./IntroScreen";
@@ -16,7 +17,13 @@ import { DoneScreen } from "./DoneScreen";
  * 라우트별 화면 렌더링 (폰 프레임 내에서 사용)
  */
 export const ScreenRouter = (): ReactNode => {
-  const { route } = useApp();
+  const { route, alarmTimes, staffLocked } = useApp();
+
+  // 환자 모드(staffLocked=true)일 때만 알람 스케줄러 활성화
+  useAlarmScheduler({
+    alarmTimes,
+    enabled: staffLocked,
+  });
 
   // 하단 네비게이션이 보이는 라우트
   const showNav = route === "home" || route === "records" || route === "export";

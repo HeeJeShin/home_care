@@ -35,18 +35,25 @@ export type LockValue = boolean | null;
 /** 잠금장치 쌍 [포트쪽, 펌프쪽] */
 export type LockPair = [LockValue, LockValue];
 
+/** 요법 타입 (3가지 선택형) */
+export type RegimenType = "FOLFOX" | "FOLFIRI" | "FOLFOXIRI";
+
+/** 성별 */
+export type Gender = "M" | "F";
+
 /** 환자 정보 (의료진이 퇴원 전 입력) */
 export type Patient = {
   name: string;
+  age: number | null;    // 나이
+  gender: Gender | null; // 성별
   mrn: string;           // 등록번호
   birth: string;         // YYYY-MM-DD
-  regimen: string;       // FOLFOX / FOLFIRI / ...
-  cycle: string;         // "4 / 12"
-  ward: string;          // 병동
+  regimen: RegimenType | null; // FOLFOX / FOLFIRI / FOLFOXIRI (선택형)
+  round: string;         // 차수 (예: "4 / 12")
+  linkedHospital: string; // 연계병원 (선택사항)
   doctor: string;        // 담당의
   nurse: string;         // 담당 간호사
-  wardPhone: string;     // 병동 직통
-  erPhone: string;       // 응급실
+  wardPhone: string;     // 담당병동연락처
 };
 
 /** 주입 일정 */
@@ -87,12 +94,22 @@ export type AlertEvent = {
   calledWard?: boolean;
 };
 
+/** 앱 모드 */
+export type AppMode = "admin" | "patient";
+
 /** 설정 */
 export type Settings = {
   staffLocked: boolean;
   staffPinHash?: string;
   pushEndpoint?: string;
   locale: "ko";
+};
+
+/** QR 데이터 (URL 쿼리스트링으로 인코딩) */
+export type QRData = {
+  patient: Patient;
+  startAt: string;       // ISO DateTime
+  alarmTimes: AlarmTimes;
 };
 
 /** 점검 진행 중 임시 데이터 */
