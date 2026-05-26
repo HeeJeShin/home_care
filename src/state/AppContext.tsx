@@ -24,6 +24,7 @@ import type {
   Route,
   SetupStep,
   AlarmSlot,
+  SentPatient,
 } from "@/types";
 
 /** 데모용: 27시간 전에 주입 시작 (중간 상태) */
@@ -163,6 +164,11 @@ export type AppState = {
   generateQRData: () => string;
   loadFromQRData: (encoded: string) => boolean;
   resetToAdmin: (pin: string) => boolean;
+  markIntroSeen: () => void;
+
+  // 발송 이력 (관리자용)
+  sentPatients: SentPatient[];
+  addSentPatient: (url: string) => void;
 
   // 포맷터
   fmtKDateTime: (d: Date) => string;
@@ -279,19 +285,61 @@ const loadChecksFromStorage = (): Check[] => {
   }
 };
 
-/** 점검 기록 저장 (localStorage + 쿠키 이중화) */
+/** 점검 기록 저장 (localStorage만 - 쿠키 4KB 제한 때문) */
 const saveChecksToStorage = (checks: Check[]): void => {
   if (typeof window === "undefined") return;
   try {
-    const json = JSON.stringify(checks);
-    localStorage.setItem(CHECKS_STORAGE_KEY, json);
-    setCookie(CHECKS_STORAGE_KEY, json, COOKIE_EXPIRY_DAYS);
+    localStorage.setItem(CHECKS_STORAGE_KEY, JSON.stringify(checks));
   } catch {
-    try {
-      setCookie(CHECKS_STORAGE_KEY, JSON.stringify(checks), COOKIE_EXPIRY_DAYS);
-    } catch {
-      // 완전 실패
+    // 저장 실패 무시
+  }
+};
+
+/** 인트로 화면 본 여부 저장 */
+const INTRO_SEEN_KEY = "homecare-intro-seen";
+
+const setIntroSeen = (): void => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(INTRO_SEEN_KEY, "1");
+  setCookie(INTRO_SEEN_KEY, "1", COOKIE_EXPIRY_DAYS);
+};
+
+const hasSeenIntro = (): boolean => {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(INTRO_SEEN_KEY) === "1" || getCookie(INTRO_SEEN_KEY) === "1";
+};
+
+/** QR 발송 이력 저장 (관리자용) */
+const SENT_PATIENTS_KEY = "homecare-sent-patients";
+
+const loadSentPatients = (): SentPatient[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(SENT_PATIENTS_KEY);
+    if (!stored) return [];
+    const all = JSON.parse(stored) as SentPatient[];
+    // 오늘 발송한 것만 필터링
+    const today = new Date().toISOString().split("T")[0];
+    return all.filter((p) => p.sentAt.startsWith(today));
+  } catch {
+    return [];
+  }
+};
+
+const saveSentPatient = (patient: SentPatient): void => {
+  if (typeof window === "undefined") return;
+  try {
+    const existing = loadSentPatients();
+    // 같은 등록번호가 있으면 업데이트, 없으면 추가
+    const idx = existing.findIndex((p) => p.mrn === patient.mrn);
+    if (idx >= 0) {
+      existing[idx] = patient;
+    } else {
+      existing.push(patient);
     }
+    localStorage.setItem(SENT_PATIENTS_KEY, JSON.stringify(existing));
+  } catch {
+    // 저장 실패 무시
   }
 };
 
@@ -300,8 +348,10 @@ const clearAllStorage = (): void => {
   if (typeof window === "undefined") return;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(CHECKS_STORAGE_KEY);
+  localStorage.removeItem(INTRO_SEEN_KEY);
   deleteCookie(STORAGE_KEY);
   deleteCookie(CHECKS_STORAGE_KEY);
+  deleteCookie(INTRO_SEEN_KEY);
 };
 
 export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
@@ -345,6 +395,9 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
 
   // 이상 이벤트
   const [alerts, setAlerts] = useState<AlertEvent[]>([]);
+
+  // 발송 이력 (관리자용)
+  const [sentPatients, setSentPatients] = useState<SentPatient[]>([]);
 
   // 점검 임시 데이터
   const [draft, setDraft] = useState<CheckDraft>({
@@ -484,6 +537,31 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
     return false;
   }, []);
 
+  // 인트로 화면 본 것으로 표시
+  const markIntroSeen = useCallback((): void => {
+    setIntroSeen();
+  }, []);
+
+  // 발송 이력에 추가
+  const addSentPatient = useCallback((url: string): void => {
+    const newEntry: SentPatient = {
+      mrn: patient.mrn,
+      name: patient.name,
+      url,
+      sentAt: new Date().toISOString(),
+    };
+    saveSentPatient(newEntry);
+    setSentPatients((prev) => {
+      const idx = prev.findIndex((p) => p.mrn === patient.mrn);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = newEntry;
+        return updated;
+      }
+      return [...prev, newEntry];
+    });
+  }, [patient.mrn, patient.name]);
+
   // 데이터 로드 (최초 마운트 시): URL 쿼리스트링 우선, 없으면 localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -508,7 +586,8 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
       setAlarmTimes(stored.alarmTimes);
       setMode("patient");
       setStaffLocked(true);
-      setRoute("home"); // 이미 인트로를 본 사용자는 홈으로
+      // 인트로를 본 적 있으면 홈으로, 아니면 인트로로
+      setRoute(hasSeenIntro() ? "home" : "intro");
       // 점검 기록도 로드
       const storedChecks = loadChecksFromStorage();
       if (storedChecks.length > 0) {
@@ -523,6 +602,13 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
       saveChecksToStorage(checks);
     }
   }, [checks]);
+
+  // 발송 이력 로드 (관리자 모드일 때)
+  useEffect(() => {
+    if (mode === "admin") {
+      setSentPatients(loadSentPatients());
+    }
+  }, [mode]);
 
   const value: AppState = {
     mode,
@@ -568,6 +654,9 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
     generateQRData,
     loadFromQRData,
     resetToAdmin,
+    markIntroSeen,
+    sentPatients,
+    addSentPatient,
     fmtKDateTime,
     fmtKShort,
     fmtHM,

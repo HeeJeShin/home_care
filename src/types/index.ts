@@ -120,3 +120,11 @@ export type CheckDraft = {
   note: string;
   photo: boolean;
 };
+
+/** QR 발송 이력 (관리자용) */
+export type SentPatient = {
+  mrn: string;
+  name: string;
+  url: string;
+  sentAt: string;  // ISO DateTime
+};

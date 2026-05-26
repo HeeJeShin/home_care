@@ -419,7 +419,7 @@ const StepReview = (): ReactNode => {
 type StepHandoffProps = { onComplete: () => void };
 
 const StepHandoff = ({ onComplete }: StepHandoffProps): ReactNode => {
-  const { generateQRData, patient } = useApp();
+  const { generateQRData, patient, sentPatients, addSentPatient } = useApp();
   const [showQR, setShowQR] = useState(false);
   const [qrUrl, setQrUrl] = useState("");
   const [copied, setCopied] = useState(false);
@@ -427,8 +427,11 @@ const StepHandoff = ({ onComplete }: StepHandoffProps): ReactNode => {
   const handleGenerateQR = (): void => {
     const encoded = generateQRData();
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
-    setQrUrl(`${baseUrl}?d=${encoded}`);
+    const url = `${baseUrl}?d=${encoded}`;
+    setQrUrl(url);
     setShowQR(true);
+    // 발송 이력에 추가
+    addSentPatient(url);
   };
 
   const handleCopyUrl = async (): Promise<void> => {
@@ -577,6 +580,37 @@ const StepHandoff = ({ onComplete }: StepHandoffProps): ReactNode => {
       <Button variant="primary" full className="mt-5" onClick={handleGenerateQR} icon={<I.QR size={16} />}>
         QR 코드 생성
       </Button>
+
+      {/* 오늘 발송 이력 */}
+      {sentPatients.length > 0 && (
+        <div className="mt-5 pt-4 border-t border-ink-100">
+          <div className="text-[10px] font-bold text-ink-400 uppercase tracking-widest mb-2">
+            오늘 발송한 환자 ({sentPatients.length}명)
+          </div>
+          <div className="space-y-2">
+            {sentPatients.map((sp) => (
+              <div
+                key={sp.mrn}
+                className="bg-ink-50 border border-ink-200 rounded-xl p-3 flex items-center justify-between"
+              >
+                <div>
+                  <div className="text-[13px] font-semibold text-ink-800">{sp.name}</div>
+                  <div className="text-[11px] text-ink-500 font-mono">{sp.mrn}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(sp.url);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-brand-100 text-brand-700 text-[11px] font-semibold hover:bg-brand-200 transition-colors"
+                >
+                  URL 복사
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

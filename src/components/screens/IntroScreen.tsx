@@ -12,7 +12,12 @@ import { PumpIllustration } from "@/components/illustrations/PumpIllustration";
  * 의료진이 입력을 완료하고 환자에게 기기를 전달한 후 보이는 화면
  */
 export const IntroScreen = (): ReactNode => {
-  const { patient, alarmTimes, endAt, goTo, fmtKShort, totalHours } = useApp();
+  const { patient, alarmTimes, endAt, goTo, fmtKShort, totalHours, markIntroSeen } = useApp();
+
+  const handleStart = (): void => {
+    markIntroSeen();
+    goTo("home");
+  };
 
   const checkItems = [
     { icon: <I.Droplet size={16} />, text: "눈금/풍선이 줄어들고 있나요?" },
@@ -112,7 +117,7 @@ export const IntroScreen = (): ReactNode => {
         <Button
           variant="primary"
           full
-          onClick={() => goTo("home")}
+          onClick={handleStart}
           iconRight={<I.ChevR size={16} />}
         >
           시작하기

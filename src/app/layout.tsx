@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
@@ -6,6 +6,14 @@ export const metadata: Metadata = {
   title: "HomeCare — 홈펌프 항암제 자가관리",
   description:
     "퇴원 후 44시간, 환자가 안심하고 홈펌프를 자가 점검할 수 있도록 돕는 모바일 웹앱",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover", // Safari notch/safe area 대응
 };
 
 type RootLayoutProps = {
