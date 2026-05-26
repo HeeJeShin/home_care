@@ -149,11 +149,8 @@ const StepPatient = (): ReactNode => {
   return (
     <div className="animate-fade-up">
       <h2 className="text-[20px] font-bold tracking-tight">환자 정보</h2>
-      <p className="mt-1 text-[12.5px] text-ink-500">
-        EMR에서 자동으로 가져오거나 수동 입력
-      </p>
 
-      <div className="mt-4 space-y-2.5">
+      <div className="mt-3 space-y-2.5">
         <Field label="이름">
           <TextInput value={patient.name} onChange={(v) => update("name", v)} placeholder="홍길동" />
         </Field>
